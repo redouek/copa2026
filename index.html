@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Copa 2026 — Álbum de Figurinhas</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Segoe UI', Arial, sans-serif; background: #2a2e2a; color: #222; font-size: 14px; }
@@ -123,6 +126,64 @@ main { padding: 10px 12px; }
 /* ══════════════════════════════════════════
    PRINT STYLES
 ══════════════════════════════════════════ */
+/* ── Auth toolbar ── */
+.auth-area { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.user-chip {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: #555;
+}
+.user-chip img { width: 22px; height: 22px; border-radius: 50%; }
+.btn-auth { background: #4285f4; color: white; }
+.btn-signout { background: #eee; color: #333; font-size: 12px; padding: 4px 10px; }
+.sync-badge {
+  font-size: 10px; padding: 2px 7px; border-radius: 10px;
+  background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7;
+}
+.sync-badge.syncing { background: #fff8e1; color: #f57f17; border-color: #ffe082; }
+.sync-badge.offline { background: #fce4ec; color: #b71c1c; border-color: #ef9a9a; }
+
+/* ── Modal ── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.55); z-index: 1000;
+  align-items: center; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal-box {
+  background: white; border-radius: 10px; padding: 28px 28px 22px;
+  width: 340px; max-width: 92vw; box-shadow: 0 8px 32px rgba(0,0,0,.3);
+}
+.modal-box h2 { font-size: 18px; margin-bottom: 18px; color: #222; }
+.modal-divider {
+  display: flex; align-items: center; gap: 10px;
+  color: #aaa; font-size: 12px; margin: 14px 0;
+}
+.modal-divider::before, .modal-divider::after {
+  content: ''; flex: 1; height: 1px; background: #ddd;
+}
+.modal-input {
+  width: 100%; padding: 9px 12px; border: 1px solid #ddd; border-radius: 6px;
+  font-size: 14px; margin-bottom: 8px; outline: none;
+}
+.modal-input:focus { border-color: #4285f4; }
+.modal-error { color: #c62828; font-size: 12px; min-height: 18px; margin-bottom: 6px; }
+.modal-row { display: flex; gap: 8px; margin-top: 4px; }
+.modal-row .btn { flex: 1; justify-content: center; }
+.btn-google {
+  width: 100%; padding: 9px; border: 1px solid #ddd; border-radius: 6px;
+  background: white; cursor: pointer; font-size: 14px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  transition: background .15s;
+}
+.btn-google:hover { background: #f5f5f5; }
+.btn-google svg { width: 18px; height: 18px; flex-shrink: 0; }
+.modal-tabs { display: flex; margin-bottom: 16px; border-bottom: 2px solid #eee; }
+.modal-tab {
+  flex: 1; padding: 7px; text-align: center; cursor: pointer;
+  font-size: 13px; font-weight: 600; color: #888; border: none; background: none;
+}
+.modal-tab.active { color: #4285f4; border-bottom: 2px solid #4285f4; margin-bottom: -2px; }
+
 #printHeader { display: none; }
 
 @media print {
@@ -175,11 +236,39 @@ main { padding: 10px 12px; }
   <div id="globalStats">—</div>
 </header>
 
+<div id="loginModal" class="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <h2>Sincronizar entre dispositivos</h2>
+    <button class="btn-google" onclick="loginGoogle()">
+      <svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      Entrar com Google
+    </button>
+    <div class="modal-divider">ou</div>
+    <div class="modal-tabs">
+      <button class="modal-tab active" id="tabEntrar" onclick="switchTab('entrar')">Entrar</button>
+      <button class="modal-tab" id="tabCriar" onclick="switchTab('criar')">Criar conta</button>
+    </div>
+    <input class="modal-input" id="authEmail" type="email" placeholder="E-mail">
+    <input class="modal-input" id="authPass"  type="password" placeholder="Senha">
+    <div class="modal-error" id="authError"></div>
+    <div class="modal-row">
+      <button class="btn btn-blue" id="btnEmailAction" onclick="emailAction()">Entrar</button>
+      <button class="btn btn-gray" onclick="closeModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <div class="toolbar">
   <button class="btn btn-green"  onclick="printMissing()">🖨️ Imprimir Faltantes</button>
   <button class="btn btn-blue"   onclick="importList()">📋 Importar Lista</button>
   <button class="btn btn-orange" onclick="exportList()">📤 Exportar Lista</button>
   <button class="btn btn-red"    onclick="resetAllMissing()">↩ Zerar Álbum</button>
+  <div class="auth-area">
+    <span class="sync-badge offline" id="syncBadge">sem sync</span>
+    <div id="userChip" class="user-chip" style="display:none"></div>
+    <button class="btn btn-auth" id="btnLogin" onclick="showLoginModal()">🔑 Sincronizar</button>
+    <button class="btn btn-signout" id="btnLogout" style="display:none" onclick="doSignOut()">Sair</button>
+  </div>
   <span class="toolbar-hint">Estado salvo automaticamente no navegador</span>
 </div>
 
@@ -457,6 +546,7 @@ function toggle(n) {
   }
   updateStats();
   persist();
+  scheduleSync();
 }
 
 function countRange(from, to) {
@@ -538,6 +628,7 @@ function importList() {
   nums.forEach(n => { state[n] = true; });
   refreshAll();
   persist();
+  scheduleSync();
   toast(`${nums.length} figurinhas marcadas como faltantes.`);
 }
 
@@ -557,6 +648,7 @@ function resetAllMissing() {
   for (let n = 1; n <= 980; n++) state[n] = true;
   refreshAll();
   persist();
+  scheduleSync();
   toast('Álbum zerado — todas as figurinhas marcadas como faltantes.');
 }
 
@@ -600,6 +692,151 @@ function toast(msg) {
 }
 
 // ═══════════════════════════════════════════════
+// FIREBASE
+// ═══════════════════════════════════════════════
+
+const FIREBASE_CONFIG = {
+  // ⚠️  Cole aqui o firebaseConfig do seu projeto Firebase
+  apiKey:            "COLE_AQUI",
+  authDomain:        "COLE_AQUI",
+  projectId:         "COLE_AQUI",
+  storageBucket:     "COLE_AQUI",
+  messagingSenderId: "COLE_AQUI",
+  appId:             "COLE_AQUI"
+};
+
+let db = null, auth = null, currentUser = null;
+let syncTimer = null;
+
+function initFirebase() {
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    auth = firebase.auth();
+    db   = firebase.firestore();
+    auth.onAuthStateChanged(onAuthChanged);
+  } catch(e) {
+    console.warn('Firebase não inicializado:', e.message);
+  }
+}
+
+async function onAuthChanged(user) {
+  currentUser = user;
+  if (user) {
+    setSyncBadge('syncing', 'sincronizando…');
+    await loadFromFirestore(user.uid);
+    refreshAll();
+    setSyncBadge('ok', '☁️ sincronizado');
+    document.getElementById('btnLogin').style.display  = 'none';
+    document.getElementById('btnLogout').style.display = '';
+    const chip = document.getElementById('userChip');
+    chip.style.display = '';
+    chip.innerHTML = user.photoURL
+      ? `<img src="${user.photoURL}" referrerpolicy="no-referrer"> ${user.displayName || user.email}`
+      : `👤 ${user.email}`;
+    closeModal();
+  } else {
+    setSyncBadge('offline', 'local');
+    document.getElementById('btnLogin').style.display  = '';
+    document.getElementById('btnLogout').style.display = 'none';
+    document.getElementById('userChip').style.display  = 'none';
+  }
+}
+
+async function loadFromFirestore(uid) {
+  try {
+    const doc = await db.collection('albums').doc(uid).get();
+    if (doc.exists) {
+      const have = doc.data().have || [];
+      for (let n = 1; n <= 980; n++) state[n] = true;
+      have.forEach(n => { state[n] = false; });
+      persist(); // atualiza localStorage local
+    }
+  } catch(e) {
+    console.warn('Erro ao carregar do Firestore:', e);
+  }
+}
+
+function scheduleSync() {
+  if (!currentUser || !db) return;
+  setSyncBadge('syncing', 'salvando…');
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(syncToFirestore, 1500);
+}
+
+async function syncToFirestore() {
+  if (!currentUser || !db) return;
+  try {
+    const have = [];
+    for (let n = 1; n <= 980; n++) if (!state[n]) have.push(n);
+    await db.collection('albums').doc(currentUser.uid).set({
+      have,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    setSyncBadge('ok', '☁️ sincronizado');
+  } catch(e) {
+    setSyncBadge('offline', 'erro ao salvar');
+    console.warn('Erro ao salvar no Firestore:', e);
+  }
+}
+
+function setSyncBadge(type, text) {
+  const el = document.getElementById('syncBadge');
+  el.className = 'sync-badge' + (type !== 'ok' ? ' ' + type : '');
+  el.textContent = text;
+}
+
+// ── Modal de login ──
+function showLoginModal() { document.getElementById('loginModal').classList.add('open'); }
+function closeModal()      { document.getElementById('loginModal').classList.remove('open'); document.getElementById('authError').textContent = ''; }
+
+let currentTab = 'entrar';
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('tabEntrar').classList.toggle('active', tab === 'entrar');
+  document.getElementById('tabCriar').classList.toggle('active', tab === 'criar');
+  document.getElementById('btnEmailAction').textContent = tab === 'entrar' ? 'Entrar' : 'Criar conta';
+  document.getElementById('authError').textContent = '';
+}
+
+async function loginGoogle() {
+  try {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    await auth.signInWithPopup(provider);
+  } catch(e) {
+    document.getElementById('authError').textContent = e.message;
+  }
+}
+
+async function emailAction() {
+  const email = document.getElementById('authEmail').value.trim();
+  const pass  = document.getElementById('authPass').value;
+  const errEl = document.getElementById('authError');
+  errEl.textContent = '';
+  if (!email || !pass) { errEl.textContent = 'Preencha e-mail e senha.'; return; }
+  try {
+    if (currentTab === 'entrar') {
+      await auth.signInWithEmailAndPassword(email, pass);
+    } else {
+      await auth.createUserWithEmailAndPassword(email, pass);
+    }
+  } catch(e) {
+    const msgs = {
+      'auth/user-not-found':    'E-mail não encontrado.',
+      'auth/wrong-password':    'Senha incorreta.',
+      'auth/email-already-in-use': 'E-mail já cadastrado.',
+      'auth/weak-password':     'Senha fraca (mínimo 6 caracteres).',
+      'auth/invalid-email':     'E-mail inválido.'
+    };
+    errEl.textContent = msgs[e.code] || e.message;
+  }
+}
+
+async function doSignOut() {
+  if (!confirm('Sair da conta? O estado fica salvo localmente.')) return;
+  await auth.signOut();
+}
+
+// ═══════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════
 try {
@@ -609,6 +846,7 @@ try {
 }
 buildUI();
 applyFilter();
+initFirebase();
 window.addEventListener('beforeunload', persist);
 </script>
 </body>
