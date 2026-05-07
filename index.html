@@ -198,12 +198,36 @@ main { padding: 10px 12px; }
   display: flex; align-items: center; gap: 10px;
 }
 .nav-label { font-size: 13px; color: #555; font-weight: 600; white-space: nowrap; }
-.nav-select {
-  padding: 5px 10px; border: 1px solid #ccc; border-radius: 6px;
-  font-size: 13px; cursor: pointer; min-width: 240px; max-width: 320px;
-  background: white; color: #222;
+
+/* custom dropdown */
+.cs-wrap { position: relative; min-width: 280px; }
+.cs-trigger {
+  width: 100%; padding: 5px 10px; border: 1px solid #ccc; border-radius: 6px;
+  background: white; cursor: pointer; font-size: 13px; color: #555;
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  text-align: left;
 }
-.nav-select:focus { outline: none; border-color: #4285f4; box-shadow: 0 0 0 2px rgba(66,133,244,.2); }
+.cs-trigger:focus { outline: none; border-color: #4285f4; }
+.cs-trigger .cs-arrow { font-size: 10px; color: #999; transition: transform .2s; }
+.cs-trigger.open .cs-arrow { transform: rotate(180deg); }
+.cs-panel {
+  display: none; position: absolute; top: calc(100% + 3px); left: 0; right: 0;
+  background: white; border: 1px solid #ccc; border-radius: 7px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.15); z-index: 500; overflow: hidden;
+}
+.cs-panel.open { display: flex; flex-direction: column; }
+.cs-search {
+  padding: 7px 10px; border: none; border-bottom: 1px solid #eee;
+  font-size: 13px; outline: none; width: 100%;
+}
+.cs-list { max-height: 280px; overflow-y: auto; list-style: none; }
+.cs-item {
+  padding: 7px 12px; cursor: pointer; font-size: 13px;
+  display: flex; align-items: center; gap: 8px; color: #222;
+}
+.cs-item:hover { background: #f0f4ff; }
+.cs-item img { border: 1px solid rgba(0,0,0,.1); border-radius: 2px; flex-shrink: 0; }
+.cs-item .cs-meta { font-size: 11px; color: #aaa; margin-left: auto; white-space: nowrap; }
 
 /* ── Flash animation ── */
 @keyframes flash-team {
@@ -269,7 +293,7 @@ main { padding: 10px 12px; }
 
 <div id="loginModal" class="modal-overlay" onclick="if(event.target===this)closeModal()">
   <div class="modal-box">
-    <h2>Sincronizar entre dispositivos</h2>
+    <h2>Login — sincronizar entre dispositivos</h2>
     <button class="btn-google" onclick="loginGoogle()">
       <svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
       Entrar com Google
@@ -297,7 +321,7 @@ main { padding: 10px 12px; }
   <div class="auth-area">
     <span class="sync-badge offline" id="syncBadge">sem sync</span>
     <div id="userChip" class="user-chip" style="display:none"></div>
-    <button class="btn btn-auth" id="btnLogin" onclick="showLoginModal()">🔑 Sincronizar</button>
+    <button class="btn btn-auth" id="btnLogin" onclick="showLoginModal()">🔑 Login</button>
     <button class="btn btn-admin" id="btnAdmin" style="display:none" onclick="showAdminPanel()">👥 Usuários</button>
     <button class="btn btn-signout" id="btnLogout" style="display:none" onclick="doSignOut()">Sair</button>
   </div>
@@ -316,9 +340,16 @@ main { padding: 10px 12px; }
 
 <div class="nav-bar">
   <span class="nav-label">⚡ Ir para:</span>
-  <select class="nav-select" id="teamJump" onchange="jumpToTeam(this.value)">
-    <option value="">— Selecione um time —</option>
-  </select>
+  <div class="cs-wrap" id="csWrap">
+    <button class="cs-trigger" id="csTrigger" onclick="toggleCs()">
+      <span id="csLabel">— Selecione um time —</span>
+      <span class="cs-arrow">▼</span>
+    </button>
+    <div class="cs-panel" id="csPanel">
+      <input class="cs-search" id="csSearch" type="text" placeholder="🔍 Filtrar times..." oninput="filterCs(this.value)" autocomplete="off">
+      <ul class="cs-list" id="csList"></ul>
+    </div>
+  </div>
 </div>
 
 <div id="printHeader">
@@ -944,37 +975,68 @@ async function doSignOut() {
 // ═══════════════════════════════════════════════
 
 function buildNav() {
-  const sel = document.getElementById('teamJump');
+  const list = document.getElementById('csList');
   const sorted = [...TEAMS].sort((a, b) => a.name.localeCompare(b.name));
 
-  // opção especial FWC no topo
-  const fwcOpt = document.createElement('option');
-  fwcOpt.value = 'FWC';
-  fwcOpt.textContent = '⭐ Especiais FWC';
-  sel.appendChild(fwcOpt);
+  // FWC no topo
+  list.appendChild(csItem('FWC', null, '⭐ Especiais FWC', ''));
 
   sorted.forEach(team => {
-    const opt = document.createElement('option');
-    opt.value = team.code;
-    opt.textContent = `${team.name}  (${team.code} · Grupo ${team.group})`;
-    sel.appendChild(opt);
+    list.appendChild(csItem(team.code, team.iso2, team.name, `${team.code} · G${team.group}`));
+  });
+
+  // fechar ao clicar fora
+  document.addEventListener('click', e => {
+    if (!document.getElementById('csWrap').contains(e.target)) closeCs();
+  });
+}
+
+function csItem(code, iso2, name, meta) {
+  const li = document.createElement('li');
+  li.className = 'cs-item';
+  li.dataset.search = name.toLowerCase();
+  const flag = iso2 ? flagImg(iso2, 18) : '<span style="width:24px;text-align:center;font-size:16px">⭐</span>';
+  li.innerHTML = `${flag}<span>${name}</span>${meta ? `<span class="cs-meta">${meta}</span>` : ''}`;
+  li.onclick = () => jumpToTeam(code);
+  return li;
+}
+
+function toggleCs() {
+  const panel   = document.getElementById('csPanel');
+  const trigger = document.getElementById('csTrigger');
+  const isOpen  = panel.classList.toggle('open');
+  trigger.classList.toggle('open', isOpen);
+  if (isOpen) {
+    document.getElementById('csSearch').value = '';
+    filterCs('');
+    setTimeout(() => document.getElementById('csSearch').focus(), 50);
+  }
+}
+
+function closeCs() {
+  document.getElementById('csPanel').classList.remove('open');
+  document.getElementById('csTrigger').classList.remove('open');
+}
+
+function filterCs(q) {
+  const lower = q.toLowerCase();
+  document.querySelectorAll('#csList .cs-item').forEach(li => {
+    li.style.display = li.dataset.search.includes(lower) ? '' : 'none';
   });
 }
 
 function jumpToTeam(code) {
-  if (!code) return;
+  closeCs();
+  document.getElementById('csLabel').textContent = '— Selecione um time —';
   const el = code === 'FWC'
     ? document.getElementById('gb_FWC')
     : document.getElementById('tb_' + code);
   if (!el) return;
   el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  // reinicia animação mesmo que já esteja ativa
   el.classList.remove('flash');
   void el.offsetWidth;
   el.classList.add('flash');
   setTimeout(() => el.classList.remove('flash'), 2100);
-  // reseta o select para permitir selecionar o mesmo time novamente
-  document.getElementById('teamJump').value = '';
 }
 
 // ═══════════════════════════════════════════════
