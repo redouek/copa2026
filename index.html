@@ -133,8 +133,16 @@ main { padding: 10px 12px; }
   font-size: 12px; color: #555;
 }
 .user-chip img { width: 22px; height: 22px; border-radius: 50%; }
-.btn-auth { background: #4285f4; color: white; }
+.btn-auth    { background: #4285f4; color: white; }
+.btn-admin   { background: #7c4dff; color: white; font-size: 12px; }
 .btn-signout { background: #eee; color: #333; font-size: 12px; padding: 4px 10px; }
+
+.admin-table { width: 100%; border-collapse: collapse; }
+.admin-table th { text-align: left; font-size: 11px; color: #888; padding: 4px 8px; border-bottom: 1px solid #eee; }
+.admin-table td { padding: 8px 8px; border-bottom: 1px solid #f5f5f5; vertical-align: middle; }
+.admin-table tr:last-child td { border-bottom: none; }
+.admin-avatar { width: 28px; height: 28px; border-radius: 50%; vertical-align: middle; margin-right: 6px; }
+.admin-nophoto { display:inline-block; width:28px; height:28px; border-radius:50%; background:#ddd; text-align:center; line-height:28px; font-size:14px; margin-right:6px; vertical-align:middle; }
 .sync-badge {
   font-size: 10px; padding: 2px 7px; border-radius: 10px;
   background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7;
@@ -214,8 +222,8 @@ main { padding: 10px 12px; }
 
   .teams-row { grid-template-columns: repeat(4, 1fr); }
   .team-block { padding: 5px; }
-  .stickers-wrap { grid-template-columns: repeat(5, 1fr); gap: 2px; }
-  .chip { font-size: 8px; padding: 2px 1px; }
+  .stickers-wrap { grid-template-columns: repeat(5, 1fr); gap: 3px; }
+  .chip { font-size: 11px; padding: 4px 2px; font-weight: 600; }
 
   .fwc-section { grid-template-columns: 1fr 1fr; }
   .fwc-sub { padding: 5px; }
@@ -267,9 +275,20 @@ main { padding: 10px 12px; }
     <span class="sync-badge offline" id="syncBadge">sem sync</span>
     <div id="userChip" class="user-chip" style="display:none"></div>
     <button class="btn btn-auth" id="btnLogin" onclick="showLoginModal()">🔑 Sincronizar</button>
+    <button class="btn btn-admin" id="btnAdmin" style="display:none" onclick="showAdminPanel()">👥 Usuários</button>
     <button class="btn btn-signout" id="btnLogout" style="display:none" onclick="doSignOut()">Sair</button>
   </div>
   <span class="toolbar-hint">Estado salvo automaticamente no navegador</span>
+</div>
+
+<div id="adminModal" class="modal-overlay" onclick="if(event.target===this)closeAdminModal()">
+  <div class="modal-box" style="width:520px;max-height:80vh;display:flex;flex-direction:column">
+    <h2 style="margin-bottom:12px">👥 Usuários cadastrados</h2>
+    <div id="adminList" style="overflow-y:auto;flex:1;font-size:13px"></div>
+    <div style="margin-top:14px;text-align:right">
+      <button class="btn btn-gray" onclick="closeAdminModal()">Fechar</button>
+    </div>
+  </div>
 </div>
 
 <div id="printHeader">
@@ -695,6 +714,8 @@ function toast(msg) {
 // FIREBASE
 // ═══════════════════════════════════════════════
 
+const ADMIN_EMAIL = 'douek.renato@gmail.com';
+
 const FIREBASE_CONFIG = {
   // ⚠️  Cole aqui o firebaseConfig do seu projeto Firebase
   apiKey:            "COLE_AQUI",
@@ -723,11 +744,13 @@ async function onAuthChanged(user) {
   currentUser = user;
   if (user) {
     setSyncBadge('syncing', 'sincronizando…');
+    await registerUser(user);
     await loadFromFirestore(user.uid);
     refreshAll();
     setSyncBadge('ok', '☁️ sincronizado');
     document.getElementById('btnLogin').style.display  = 'none';
     document.getElementById('btnLogout').style.display = '';
+    document.getElementById('btnAdmin').style.display  = user.email === ADMIN_EMAIL ? '' : 'none';
     const chip = document.getElementById('userChip');
     chip.style.display = '';
     chip.innerHTML = user.photoURL
@@ -738,9 +761,59 @@ async function onAuthChanged(user) {
     setSyncBadge('offline', 'local');
     document.getElementById('btnLogin').style.display  = '';
     document.getElementById('btnLogout').style.display = 'none';
+    document.getElementById('btnAdmin').style.display  = 'none';
     document.getElementById('userChip').style.display  = 'none';
   }
 }
+
+async function registerUser(user) {
+  try {
+    const ref = db.collection('users').doc(user.uid);
+    const doc = await ref.get();
+    if (!doc.exists) {
+      await ref.set({
+        email:       user.email,
+        displayName: user.displayName || '',
+        photoURL:    user.photoURL    || '',
+        createdAt:   firebase.firestore.FieldValue.serverTimestamp()
+      });
+    } else {
+      await ref.update({ lastLoginAt: firebase.firestore.FieldValue.serverTimestamp() });
+    }
+  } catch(e) { console.warn('Erro ao registrar usuário:', e); }
+}
+
+async function showAdminPanel() {
+  document.getElementById('adminModal').classList.add('open');
+  const listEl = document.getElementById('adminList');
+  listEl.innerHTML = '<p style="color:#888;padding:8px">Carregando…</p>';
+  try {
+    const snap = await db.collection('users').orderBy('createdAt', 'desc').get();
+    if (snap.empty) { listEl.innerHTML = '<p style="color:#888;padding:8px">Nenhum usuário ainda.</p>'; return; }
+    const fmt = dt => dt ? new Date(dt.seconds * 1000).toLocaleString('pt-BR') : '—';
+    let rows = '';
+    snap.forEach(doc => {
+      const u = doc.data();
+      const avatar = u.photoURL
+        ? `<img src="${u.photoURL}" class="admin-avatar" referrerpolicy="no-referrer">`
+        : `<span class="admin-nophoto">👤</span>`;
+      rows += `<tr>
+        <td>${avatar}${u.displayName || u.email}</td>
+        <td style="color:#555">${u.email}</td>
+        <td style="color:#888;white-space:nowrap">${fmt(u.createdAt)}</td>
+        <td style="color:#aaa;white-space:nowrap">${fmt(u.lastLoginAt)}</td>
+      </tr>`;
+    });
+    listEl.innerHTML = `<table class="admin-table">
+      <thead><tr><th>Usuário</th><th>E-mail</th><th>Cadastro</th><th>Último acesso</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  } catch(e) {
+    listEl.innerHTML = `<p style="color:#c62828;padding:8px">Erro: ${e.message}</p>`;
+  }
+}
+
+function closeAdminModal() { document.getElementById('adminModal').classList.remove('open'); }
 
 async function loadFromFirestore(uid) {
   try {
