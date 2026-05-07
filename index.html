@@ -192,9 +192,32 @@ main { padding: 10px 12px; }
 }
 .modal-tab.active { color: #4285f4; border-bottom: 2px solid #4285f4; margin-bottom: -2px; }
 
+/* ── Nav bar ── */
+.nav-bar {
+  background: #fff; padding: 7px 14px; border-bottom: 1px solid #e0e0e0;
+  display: flex; align-items: center; gap: 10px;
+}
+.nav-label { font-size: 13px; color: #555; font-weight: 600; white-space: nowrap; }
+.nav-select {
+  padding: 5px 10px; border: 1px solid #ccc; border-radius: 6px;
+  font-size: 13px; cursor: pointer; min-width: 240px; max-width: 320px;
+  background: white; color: #222;
+}
+.nav-select:focus { outline: none; border-color: #4285f4; box-shadow: 0 0 0 2px rgba(66,133,244,.2); }
+
+/* ── Flash animation ── */
+@keyframes flash-team {
+  0%         { box-shadow: none;                                                    background: white; }
+  15%, 50%, 85% { box-shadow: 0 0 0 4px #ffd700, 0 0 22px rgba(255,200,0,.55); background: #fffde7; }
+  32%, 68%   { box-shadow: none;                                                    background: white; }
+  100%       { box-shadow: none;                                                    background: white; }
+}
+.team-block.flash { animation: flash-team 2s ease-in-out; }
+
 #printHeader { display: none; }
 
 @media print {
+  .nav-bar { display: none; }
   body { background: white; font-size: 12px; }
   header { display: none; }
   .toolbar, .filter-bar { display: none !important; }
@@ -289,6 +312,13 @@ main { padding: 10px 12px; }
       <button class="btn btn-gray" onclick="closeAdminModal()">Fechar</button>
     </div>
   </div>
+</div>
+
+<div class="nav-bar">
+  <span class="nav-label">⚡ Ir para:</span>
+  <select class="nav-select" id="teamJump" onchange="jumpToTeam(this.value)">
+    <option value="">— Selecione um time —</option>
+  </select>
 </div>
 
 <div id="printHeader">
@@ -910,6 +940,44 @@ async function doSignOut() {
 }
 
 // ═══════════════════════════════════════════════
+// NAVEGAÇÃO — select + flash
+// ═══════════════════════════════════════════════
+
+function buildNav() {
+  const sel = document.getElementById('teamJump');
+  const sorted = [...TEAMS].sort((a, b) => a.name.localeCompare(b.name));
+
+  // opção especial FWC no topo
+  const fwcOpt = document.createElement('option');
+  fwcOpt.value = 'FWC';
+  fwcOpt.textContent = '⭐ Especiais FWC';
+  sel.appendChild(fwcOpt);
+
+  sorted.forEach(team => {
+    const opt = document.createElement('option');
+    opt.value = team.code;
+    opt.textContent = `${team.name}  (${team.code} · Grupo ${team.group})`;
+    sel.appendChild(opt);
+  });
+}
+
+function jumpToTeam(code) {
+  if (!code) return;
+  const el = code === 'FWC'
+    ? document.getElementById('gb_FWC')
+    : document.getElementById('tb_' + code);
+  if (!el) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  // reinicia animação mesmo que já esteja ativa
+  el.classList.remove('flash');
+  void el.offsetWidth;
+  el.classList.add('flash');
+  setTimeout(() => el.classList.remove('flash'), 2100);
+  // reseta o select para permitir selecionar o mesmo time novamente
+  document.getElementById('teamJump').value = '';
+}
+
+// ═══════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════
 try {
@@ -918,6 +986,7 @@ try {
   initState();
 }
 buildUI();
+buildNav();
 applyFilter();
 initFirebase();
 window.addEventListener('beforeunload', persist);
