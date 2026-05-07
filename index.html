@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Copa 2026 — Álbum de Figurinhas</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', Arial, sans-serif; background: #2a2e2a; color: #222; font-size: 14px; }
+
+/* ── Header ── */
+header {
+  background: linear-gradient(135deg, #005f1f, #1a8f3a);
+  color: white; padding: 10px 16px;
+  display: flex; align-items: center; gap: 12px;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+header h1 { font-size: 18px; font-weight: 700; }
+#globalStats { margin-left: auto; text-align: right; font-size: 13px; line-height: 1.5; }
+
+/* ── Toolbar ── */
+.toolbar {
+  background: white; padding: 8px 14px; border-bottom: 1px solid #ddd;
+  display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+}
+.btn {
+  padding: 6px 14px; border: none; border-radius: 5px;
+  cursor: pointer; font-size: 13px; font-weight: 600; transition: opacity 0.15s;
+}
+.btn:hover { opacity: 0.82; }
+.btn-green  { background: #005f1f; color: white; }
+.btn-blue   { background: #1255a0; color: white; }
+.btn-orange { background: #c05000; color: white; }
+.btn-red    { background: #a01010; color: white; }
+.btn-gray   { background: #555; color: white; }
+.toolbar-hint { font-size: 11px; color: #888; margin-left: 6px; }
+
+/* ── Main layout ── */
+main { padding: 10px 12px; }
+.groups-grid { display: flex; flex-direction: column; gap: 10px; }
+
+/* ── Group block ── */
+.group-block {
+  background: white; border-radius: 7px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.12); overflow: hidden;
+}
+.group-header {
+  padding: 6px 12px; font-weight: 700; font-size: 14px; color: white;
+  display: flex; align-items: center; gap: 8px;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+.group-header .g-letter { font-size: 20px; font-weight: 900; opacity: .75; }
+.group-header .g-stats  { margin-left: auto; font-size: 11px; font-weight: 400; }
+
+/* ── Teams row ── */
+.teams-row {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid #eee;
+}
+.team-block { border-right: 1px solid #eee; padding: 8px; }
+.team-block:last-child { border-right: none; }
+.team-title {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 4px;
+}
+.team-name { font-weight: 700; font-size: 12px; }
+.team-code {
+  font-family: monospace; font-size: 10px; background: #f0f0f0;
+  padding: 1px 4px; border-radius: 3px; color: #555;
+}
+.team-meta { font-size: 10px; color: #999; margin-bottom: 5px; min-height: 14px; }
+
+/* ── Sticker grid ── */
+.stickers-wrap { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; }
+
+.chip {
+  text-align: center; padding: 3px 1px; font-size: 9px; line-height: 1.2;
+  border-radius: 3px; border: 1px solid #ddd;
+  cursor: pointer; user-select: none; transition: background .1s;
+  white-space: nowrap; overflow: hidden;
+}
+.chip.missing {
+  background: #fff0f0; border-color: #f08080; color: #c00;
+  font-weight: 700;
+}
+.chip.have {
+  background: #f0fff0; border-color: #90c090; color: #2a6e2a;
+  text-decoration: line-through; opacity: .6;
+}
+
+/* ── FWC special ── */
+.fwc-section { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid #eee; }
+.fwc-sub { padding: 8px; border-right: 1px solid #eee; }
+.fwc-sub:last-child { border-right: none; }
+.fwc-sub-title { font-size: 11px; color: #777; margin-bottom: 5px; font-weight: 600; }
+
+/* ── Group colors ── */
+.gc-A { background: #b71c1c; }
+.gc-B { background: #880e4f; }
+.gc-C { background: #bf360c; }
+.gc-D { background: #4527a0; }
+.gc-E { background: #1a237e; }
+.gc-F { background: #1b5e20; }
+.gc-G { background: #33691e; }
+.gc-H { background: #006064; }
+.gc-I { background: #0d47a1; }
+.gc-J { background: #4a148c; }
+.gc-K { background: #3e2723; }
+.gc-L { background: #263238; }
+.gc-FWC { background: #005f1f; }
+
+/* ── Filter buttons ── */
+.filter-bar { display: flex; gap: 6px; align-items: center; font-size: 12px; padding: 0 2px; }
+.btn-filter {
+  padding: 3px 10px; border-radius: 12px; border: 2px solid transparent;
+  cursor: pointer; font-size: 12px; font-weight: 600; opacity: .45;
+  transition: opacity .15s, border-color .15s;
+}
+.btn-filter.active { opacity: 1; border-color: rgba(255,255,255,.6); }
+.btn-filter-missing { background: #f08080; color: #fff; }
+.btn-filter-have    { background: #6abf6a; color: #fff; }
+
+/* ══════════════════════════════════════════
+   PRINT STYLES
+══════════════════════════════════════════ */
+@media print {
+  body { background: white; font-size: 12px; }
+  header { padding: 6px 10px; }
+  header h1 { font-size: 14px; }
+  header h1::after { content: " — Figurinhas em Falta"; }
+  .toolbar, .filter-bar { display: none !important; }
+  main { padding: 3px; }
+  .groups-grid { gap: 5px; }
+
+  .group-block { box-shadow: none; border: 1px solid #bbb; page-break-inside: avoid; }
+  .group-header { padding: 4px 8px; font-size: 12px; }
+  .group-header .g-letter { font-size: 15px; }
+
+  /* hide stickers already found */
+  .chip.have { display: none; }
+
+  /* hide teams where nothing is missing */
+  .team-block.print-hide { display: none; }
+
+  /* hide entire group block if all complete */
+  .group-block.print-hide { display: none; }
+
+  .teams-row { grid-template-columns: repeat(4, 1fr); }
+  .team-block { padding: 5px; }
+  .stickers-wrap { grid-template-columns: repeat(5, 1fr); gap: 2px; }
+  .chip { font-size: 8px; padding: 2px 1px; }
+
+  .fwc-section { grid-template-columns: 1fr 1fr; }
+  .fwc-sub { padding: 5px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>⚽ Copa do Mundo 2026 — Álbum de Figurinhas</h1>
+    <div class="filter-bar">
+      <button class="btn-filter btn-filter-missing active" id="btnMissing" onclick="toggleFilter('missing')">🔴 Faltando</button>
+      <button class="btn-filter btn-filter-have active"    id="btnHave"    onclick="toggleFilter('have')">🟢 Tenho</button>
+      <span style="color:rgba(255,255,255,.5);font-size:11px">· clique para filtrar</span>
+    </div>
+  </div>
+  <div id="globalStats">—</div>
+</header>
+
+<div class="toolbar">
+  <button class="btn btn-green"  onclick="printMissing()">🖨️ Imprimir Faltantes</button>
+  <button class="btn btn-blue"   onclick="importList()">📋 Importar Lista</button>
+  <button class="btn btn-orange" onclick="exportList()">📤 Exportar Lista</button>
+  <button class="btn btn-red"    onclick="resetAllMissing()">↩ Zerar Álbum</button>
+  <span class="toolbar-hint">Estado salvo automaticamente no navegador</span>
+</div>
+
+<main>
+  <div class="groups-grid" id="groupsContainer"></div>
+</main>
+
+<script>
+// ═══════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════
+
+const TEAMS = [
+  // Group A
+  { code:'MEX', name:'Mexico',             iso2:'mx',     group:'A', start:10  },
+  { code:'RSA', name:'South Africa',       iso2:'za',     group:'A', start:30  },
+  { code:'KOR', name:'Korea Republic',     iso2:'kr',     group:'A', start:50  },
+  { code:'CZE', name:'Czechia',            iso2:'cz',     group:'A', start:70  },
+  // Group B
+  { code:'CAN', name:'Canada',             iso2:'ca',     group:'B', start:90  },
+  { code:'BIH', name:'Bosnia-Herzegovina', iso2:'ba',     group:'B', start:110 },
+  { code:'QAT', name:'Qatar',              iso2:'qa',     group:'B', start:130 },
+  { code:'SUI', name:'Switzerland',        iso2:'ch',     group:'B', start:150 },
+  // Group C
+  { code:'BRA', name:'Brazil',             iso2:'br',     group:'C', start:170 },
+  { code:'MAR', name:'Morocco',            iso2:'ma',     group:'C', start:190 },
+  { code:'HAI', name:'Haiti',              iso2:'ht',     group:'C', start:210 },
+  { code:'SCO', name:'Scotland',           iso2:'gb-sct', group:'C', start:230 },
+  // Group D
+  { code:'USA', name:'USA',                iso2:'us',     group:'D', start:250 },
+  { code:'PAR', name:'Paraguay',           iso2:'py',     group:'D', start:270 },
+  { code:'AUS', name:'Australia',          iso2:'au',     group:'D', start:290 },
+  { code:'TUR', name:'Türkiye',            iso2:'tr',     group:'D', start:310 },
+  // Group E
+  { code:'GER', name:'Germany',            iso2:'de',     group:'E', start:330 },
+  { code:'CUW', name:'Curaçao',            iso2:'cw',     group:'E', start:350 },
+  { code:'CIV', name:"Côte d'Ivoire",      iso2:'ci',     group:'E', start:370 },
+  { code:'ECU', name:'Ecuador',            iso2:'ec',     group:'E', start:390 },
+  // Group F
+  { code:'NED', name:'Netherlands',        iso2:'nl',     group:'F', start:410 },
+  { code:'JPN', name:'Japan',              iso2:'jp',     group:'F', start:430 },
+  { code:'SWE', name:'Sweden',             iso2:'se',     group:'F', start:450 },
+  { code:'TUN', name:'Tunisia',            iso2:'tn',     group:'F', start:470 },
+  // Group G
+  { code:'BEL', name:'Belgium',            iso2:'be',     group:'G', start:490 },
+  { code:'EGV', name:'Egypt',              iso2:'eg',     group:'G', start:510 },
+  { code:'IRN', name:'IR Iran',            iso2:'ir',     group:'G', start:530 },
+  { code:'NZL', name:'New Zealand',        iso2:'nz',     group:'G', start:550 },
+  // Group H
+  { code:'ESP', name:'Spain',              iso2:'es',     group:'H', start:570 },
+  { code:'CPV', name:'Cabo Verde',         iso2:'cv',     group:'H', start:590 },
+  { code:'KSA', name:'Saudi Arabia',       iso2:'sa',     group:'H', start:610 },
+  { code:'URU', name:'Uruguay',            iso2:'uy',     group:'H', start:630 },
+  // Group I
+  { code:'FRA', name:'France',             iso2:'fr',     group:'I', start:650 },
+  { code:'SEN', name:'Senegal',            iso2:'sn',     group:'I', start:670 },
+  { code:'IRQ', name:'Iraq',               iso2:'iq',     group:'I', start:690 },
+  { code:'NOR', name:'Norway',             iso2:'no',     group:'I', start:710 },
+  // Group J
+  { code:'ARG', name:'Argentina',          iso2:'ar',     group:'J', start:730 },
+  { code:'ALG', name:'Algeria',            iso2:'dz',     group:'J', start:750 },
+  { code:'AUT', name:'Austria',            iso2:'at',     group:'J', start:770 },
+  { code:'JOR', name:'Jordan',             iso2:'jo',     group:'J', start:790 },
+  // Group K
+  { code:'POR', name:'Portugal',           iso2:'pt',     group:'K', start:810 },
+  { code:'COD', name:'Congo DR',           iso2:'cd',     group:'K', start:830 },
+  { code:'UZB', name:'Uzbekistan',         iso2:'uz',     group:'K', start:850 },
+  { code:'COL', name:'Colombia',           iso2:'co',     group:'K', start:870 },
+  // Group L
+  { code:'ENG', name:'England',            iso2:'gb-eng', group:'L', start:890 },
+  { code:'CRO', name:'Croatia',            iso2:'hr',     group:'L', start:910 },
+  { code:'GHA', name:'Ghana',              iso2:'gh',     group:'L', start:930 },
+  { code:'PAN', name:'Panama',             iso2:'pa',     group:'L', start:950 },
+];
+
+function flagImg(iso2, h) {
+  return `<img src="https://flagcdn.com/w40/${iso2}.png" height="${h}" style="vertical-align:middle;border:1px solid rgba(0,0,0,.1);border-radius:2px" alt="" loading="lazy">`;
+}
+
+const GROUPS = ['A','B','C','D','E','F','G','H','I','J','K','L'];
+
+// Number → { label }
+// 1–9  : FWC00–FWC08 (início)
+// 10–969: team stickers
+// 970–980: FWC09–FWC19 (final)
+function numToLabel(n) {
+  if (n >= 1 && n <= 9) {
+    return 'FWC' + String(n - 1).padStart(2, '0');
+  }
+  if (n >= 10 && n <= 969) {
+    const ti  = Math.floor((n - 10) / 20);
+    const pos = (n - 10) % 20 + 1;
+    return TEAMS[ti].code + pos;
+  }
+  if (n >= 970 && n <= 980) {
+    return 'FWC' + String(n - 970 + 9).padStart(2, '0');
+  }
+  return '?';
+}
+
+// ═══════════════════════════════════════════════
+// INITIAL MISSING LIST (from user)
+// ═══════════════════════════════════════════════
+const INITIAL_MISSING_NUMS = new Set([
+  2,3,4,5,6,7,8,9,11,12,13,14,16,17,18,20,21,23,24,22,31,35,36,41,43,44,45,
+  46,49,42,51,52,53,54,55,56,57,58,61,63,66,67,68,62,70,74,78,81,87,82,90,92,
+  93,96,100,104,105,106,107,109,110,111,112,113,114,115,116,117,121,126,131,
+  134,135,138,140,141,143,144,147,148,149,142,150,151,154,155,157,158,160,161,
+  163,165,166,168,169,162,170,172,173,174,176,178,180,183,187,188,182,190,191,
+  192,195,199,201,203,204,206,207,208,209,210,211,213,215,217,221,226,227,229,
+  230,231,234,236,237,239,243,245,247,251,252,255,256,258,259,260,264,269,262,
+  270,273,274,275,278,279,283,284,287,288,290,291,292,293,294,296,297,299,300,
+  301,303,304,305,306,308,309,310,311,312,314,315,316,319,320,324,325,328,329,
+  322,333,334,336,337,338,340,343,344,345,346,347,348,349,350,352,354,358,359,
+  360,361,363,364,365,367,368,369,362,371,372,373,374,375,376,378,379,380,383,
+  384,385,387,382,390,392,393,394,400,404,406,409,410,415,419,424,426,427,429,
+  431,432,433,435,436,438,440,443,444,445,447,448,449,442,450,458,459,460,464,
+  466,467,469,471,472,473,474,475,477,478,479,485,488,489,482,491,492,493,494,
+  495,496,497,500,503,505,506,508,509,502,517,518,520,521,523,525,526,527,522,
+  530,531,532,533,535,536,537,539,541,544,546,548,550,554,558,564,568,562,570,
+  571,573,574,575,576,577,579,581,583,584,586,587,588,582,591,592,593,594,595,
+  596,597,598,599,600,601,603,604,606,607,608,612,613,616,617,621,623,626,627,
+  622,631,632,633,634,635,636,637,638,639,640,641,643,649,642,650,651,653,655,
+  656,657,659,660,661,664,665,668,669,662,671,672,677,678,679,680,685,686,689,
+  682,690,692,696,697,698,700,703,705,707,710,712,714,715,716,718,719,721,723,
+  726,727,729,722,733,734,735,736,737,739,743,745,747,749,742,750,752,753,760,
+  765,762,771,774,777,778,779,780,781,783,784,786,787,788,789,791,793,797,801,
+  804,806,808,812,813,816,817,820,821,825,826,829,822,831,835,836,837,838,840,
+  845,849,842,854,856,858,860,863,865,866,867,868,862,871,872,873,876,879,880,
+  881,883,884,885,886,887,888,889,882,890,891,892,893,894,896,898,899,901,904,
+  906,908,902,910,912,914,916,920,923,925,929,922,931,933,934,935,937,938,939,
+  941,948,942,950,951,952,956,958,960,961,963,964,965,969,962,970,972,973,974,
+  975,976,978,979,980
+]);
+
+// ═══════════════════════════════════════════════
+// STATE  (true = missing, false = have)
+// ═══════════════════════════════════════════════
+let state = {};
+
+function initState() {
+  for (let n = 1; n <= 980; n++) state[n] = INITIAL_MISSING_NUMS.has(n);
+}
+
+function storageGet(key) {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
+function storageSet(key, val) {
+  try { localStorage.setItem(key, val); } catch { /* sem suporte a localStorage */ }
+}
+
+function loadState() {
+  const raw = storageGet('copa2026_v2');
+  if (raw) {
+    try {
+      const obj = JSON.parse(raw);
+      for (let n = 1; n <= 980; n++) state[n] = !!obj[n];
+      return;
+    } catch { /* fallback abaixo */ }
+  }
+  initState();
+}
+
+function persist() {
+  storageSet('copa2026_v2', JSON.stringify(state));
+}
+
+// ═══════════════════════════════════════════════
+// UI BUILD
+// ═══════════════════════════════════════════════
+
+function makeChip(n, label) {
+  const el = document.createElement('div');
+  el.id = 'c' + n;
+  el.dataset.n = n;
+  el.className = 'chip ' + (state[n] ? 'missing' : 'have');
+  el.textContent = label;
+  el.title = '#' + n + ' → ' + label;
+  el.onclick = () => toggle(n);
+  return el;
+}
+
+function buildUI() {
+  const container = document.getElementById('groupsContainer');
+  container.innerHTML = '';
+
+  // ── FWC Special ──
+  const fwcBlock = document.createElement('div');
+  fwcBlock.className = 'group-block';
+  fwcBlock.id = 'gb_FWC';
+  fwcBlock.innerHTML = `
+    <div class="group-header gc-FWC">
+      <span class="g-letter">★</span>
+      <span>Figurinhas Especiais FWC</span>
+      <span class="g-stats" id="gs_FWC"></span>
+    </div>
+    <div class="fwc-section">
+      <div class="fwc-sub">
+        <div class="fwc-sub-title">Início do Álbum (FWC00–FWC08)</div>
+        <div class="stickers-wrap" id="fw_start"></div>
+      </div>
+      <div class="fwc-sub">
+        <div class="fwc-sub-title">Final do Álbum (FWC09–FWC19)</div>
+        <div class="stickers-wrap" id="fw_end"></div>
+      </div>
+    </div>`;
+  container.appendChild(fwcBlock);
+
+  for (let n = 1; n <= 9; n++)
+    document.getElementById('fw_start').appendChild(makeChip(n, numToLabel(n)));
+  for (let n = 970; n <= 980; n++)
+    document.getElementById('fw_end').appendChild(makeChip(n, numToLabel(n)));
+
+  // ── Groups ──
+  for (const g of GROUPS) {
+    const groupTeams = TEAMS.filter(t => t.group === g);
+
+    const block = document.createElement('div');
+    block.className = 'group-block';
+    block.id = 'gb_' + g;
+
+    const hdr = document.createElement('div');
+    hdr.className = 'group-header gc-' + g;
+    hdr.innerHTML = `<span class="g-letter">${g}</span><span>Grupo ${g}</span><span class="g-stats" id="gs_${g}"></span>`;
+    block.appendChild(hdr);
+
+    const row = document.createElement('div');
+    row.className = 'teams-row';
+
+    for (const team of groupTeams) {
+      const tb = document.createElement('div');
+      tb.className = 'team-block';
+      tb.id = 'tb_' + team.code;
+      tb.innerHTML = `
+        <div class="team-title">
+          <span class="team-name">${flagImg(team.iso2, 14)} ${team.name}</span>
+          <span class="team-code">${team.code}</span>
+        </div>
+        <div class="team-meta" id="tm_${team.code}"></div>
+        <div class="stickers-wrap" id="sw_${team.code}"></div>`;
+      row.appendChild(tb);
+
+      const wrap = tb.querySelector('#sw_' + team.code);
+      for (let pos = 1; pos <= 20; pos++) {
+        const n = team.start + pos - 1;
+        wrap.appendChild(makeChip(n, team.code + pos));
+      }
+    }
+
+    block.appendChild(row);
+    container.appendChild(block);
+  }
+
+  updateStats();
+}
+
+// ═══════════════════════════════════════════════
+// TOGGLE + STATS
+// ═══════════════════════════════════════════════
+
+function toggle(n) {
+  state[n] = !state[n];
+  const el = document.getElementById('c' + n);
+  if (el) {
+    el.className = 'chip ' + (state[n] ? 'missing' : 'have');
+    if (state[n] && !showMissing) el.style.display = 'none';
+    if (!state[n] && !showHave)   el.style.display = 'none';
+    if (state[n] && showMissing)  el.style.display = '';
+    if (!state[n] && showHave)    el.style.display = '';
+  }
+  updateStats();
+  persist();
+}
+
+function countRange(from, to) {
+  let m = 0;
+  for (let n = from; n <= to; n++) if (state[n]) m++;
+  return { missing: m, total: to - from + 1 };
+}
+
+function updateStats() {
+  let totalMissing = 0;
+  for (let n = 1; n <= 980; n++) if (state[n]) totalMissing++;
+  const have = 980 - totalMissing;
+  document.getElementById('globalStats').innerHTML =
+    `<strong>Tenho: ${have}</strong><br>Faltam: ${totalMissing} / 980`;
+
+  // FWC
+  let fwcM = 0;
+  for (let n = 1;   n <= 9;   n++) if (state[n]) fwcM++;
+  for (let n = 970; n <= 980; n++) if (state[n]) fwcM++;
+  const gsF = document.getElementById('gs_FWC');
+  if (gsF) gsF.textContent = fwcM ? `Faltam ${fwcM}/20` : '✓ Completo';
+
+  // Groups
+  for (const g of GROUPS) {
+    const groupTeams = TEAMS.filter(t => t.group === g);
+    let gMissing = 0;
+    for (const team of groupTeams) {
+      const { missing } = countRange(team.start, team.start + 19);
+      gMissing += missing;
+      const tm = document.getElementById('tm_' + team.code);
+      if (tm) {
+        tm.textContent = missing ? `Faltam ${missing}/20` : '✓ Completo';
+        tm.style.color  = missing ? '#c00' : '#2a6e2a';
+      }
+    }
+    const gs = document.getElementById('gs_' + g);
+    if (gs) gs.textContent = gMissing ? `Faltam ${gMissing}/80` : '✓ Completo';
+  }
+}
+
+// ═══════════════════════════════════════════════
+// ACTIONS
+// ═══════════════════════════════════════════════
+
+function printMissing() {
+  // Tag team blocks and group blocks for print-hide
+  for (const team of TEAMS) {
+    const { missing } = countRange(team.start, team.start + 19);
+    const tb = document.getElementById('tb_' + team.code);
+    if (tb) tb.classList.toggle('print-hide', missing === 0);
+  }
+  // FWC
+  let fwcM = 0;
+  for (let n = 1; n <= 9; n++) if (state[n]) fwcM++;
+  for (let n = 970; n <= 980; n++) if (state[n]) fwcM++;
+  const fwcBlock = document.getElementById('gb_FWC');
+  if (fwcBlock) fwcBlock.classList.toggle('print-hide', fwcM === 0);
+  // Groups
+  for (const g of GROUPS) {
+    const groupTeams = TEAMS.filter(t => t.group === g);
+    const gMissing = groupTeams.reduce((s, t) => s + countRange(t.start, t.start + 19).missing, 0);
+    const gb = document.getElementById('gb_' + g);
+    if (gb) gb.classList.toggle('print-hide', gMissing === 0);
+  }
+  window.print();
+}
+
+function importList() {
+  const input = prompt(
+    'Cole a lista de NÚMEROS FALTANTES (separados por vírgulas ou espaços):\n' +
+    'Ex: 2, 3, 5, 11, 45...'
+  );
+  if (input == null) return;
+  const nums = input.split(/[\s,;]+/).map(v => parseInt(v)).filter(n => n >= 1 && n <= 980 && !isNaN(n));
+  if (!nums.length) { alert('Nenhum número válido encontrado.'); return; }
+  for (let n = 1; n <= 980; n++) state[n] = false;
+  nums.forEach(n => { state[n] = true; });
+  refreshAll();
+  persist();
+  toast(`${nums.length} figurinhas marcadas como faltantes.`);
+}
+
+function exportList() {
+  const missing = [];
+  for (let n = 1; n <= 980; n++) if (state[n]) missing.push(n);
+  const txt = missing.join(', ');
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(txt).then(() => toast('Lista copiada para a área de transferência!'));
+  } else {
+    prompt('Copie a lista abaixo (Ctrl+A, Ctrl+C):', txt);
+  }
+}
+
+function resetAllMissing() {
+  if (!confirm('Marcar TODAS as 980 figurinhas como faltantes?')) return;
+  for (let n = 1; n <= 980; n++) state[n] = true;
+  refreshAll();
+  persist();
+  toast('Álbum zerado — todas as figurinhas marcadas como faltantes.');
+}
+
+// ── Filtro ──
+let showMissing = true;
+let showHave    = true;
+
+function toggleFilter(type) {
+  if (type === 'missing') showMissing = !showMissing;
+  else                    showHave    = !showHave;
+  document.getElementById('btnMissing').classList.toggle('active', showMissing);
+  document.getElementById('btnHave').classList.toggle('active', showHave);
+  applyFilter();
+}
+
+function applyFilter() {
+  document.querySelectorAll('.chip.missing').forEach(el => {
+    el.style.display = showMissing ? '' : 'none';
+  });
+  document.querySelectorAll('.chip.have').forEach(el => {
+    el.style.display = showHave ? '' : 'none';
+  });
+}
+
+function refreshAll() {
+  for (let n = 1; n <= 980; n++) {
+    const el = document.getElementById('c' + n);
+    if (el) el.className = 'chip ' + (state[n] ? 'missing' : 'have');
+  }
+  updateStats();
+  applyFilter();
+}
+
+function toast(msg) {
+  const t = Object.assign(document.createElement('div'), {
+    textContent: msg,
+    style: 'position:fixed;bottom:22px;right:22px;background:#222;color:#fff;padding:10px 18px;border-radius:7px;z-index:9999;font-size:13px;box-shadow:0 3px 10px rgba(0,0,0,.3)'
+  });
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2500);
+}
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+try {
+  loadState();
+} catch(e) {
+  initState();
+}
+buildUI();
+applyFilter();
+window.addEventListener('beforeunload', persist);
+</script>
+</body>
+</html>
