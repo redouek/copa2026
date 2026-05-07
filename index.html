@@ -123,12 +123,18 @@ main { padding: 10px 12px; }
 /* ══════════════════════════════════════════
    PRINT STYLES
 ══════════════════════════════════════════ */
+#printHeader { display: none; }
+
 @media print {
   body { background: white; font-size: 12px; }
-  header { padding: 6px 10px; }
-  header h1 { font-size: 14px; }
-  header h1::after { content: " — Figurinhas em Falta"; }
+  header { display: none; }
   .toolbar, .filter-bar { display: none !important; }
+  #printHeader {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 5px 8px; margin-bottom: 6px;
+    border-bottom: 2px solid #333; font-size: 12px;
+  }
+  #printHeader strong { font-size: 13px; }
   main { padding: 3px; }
   .groups-grid { gap: 5px; }
 
@@ -175,6 +181,11 @@ main { padding: 10px 12px; }
   <button class="btn btn-orange" onclick="exportList()">📤 Exportar Lista</button>
   <button class="btn btn-red"    onclick="resetAllMissing()">↩ Zerar Álbum</button>
   <span class="toolbar-hint">Estado salvo automaticamente no navegador</span>
+</div>
+
+<div id="printHeader">
+  <strong>Copa FIFA 2026 — Controle de Figurinhas</strong>
+  <span id="printStats"></span>
 </div>
 
 <main>
@@ -460,6 +471,8 @@ function updateStats() {
   const have = 980 - totalMissing;
   document.getElementById('globalStats').innerHTML =
     `<strong>Tenho: ${have}</strong><br>Faltam: ${totalMissing} / 980`;
+  const ps = document.getElementById('printStats');
+  if (ps) ps.textContent = `Tenho: ${have}  |  Faltam: ${totalMissing} / 980`;
 
   // FWC
   let fwcM = 0;
