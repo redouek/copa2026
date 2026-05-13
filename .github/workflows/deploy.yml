@@ -26,8 +26,5 @@ jobs:
       - name: Instalar Firebase CLI
         run: npm install -g firebase-tools
 
-      - name: Deploy Firestore + Storage rules
-        run: firebase deploy --only firestore:rules,storage --project album-copa-26
-
-      - name: Configurar CORS do Storage
-        run: gsutil cors set cors.json gs://album-copa-26.firebasestorage.app
+      - name: Deploy Firestore rules
+        run: firebase deploy --only firestore:rules --project album-copa-26
