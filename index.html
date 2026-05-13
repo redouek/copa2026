@@ -483,8 +483,8 @@ body.view-line .fwc-sub .stickers-wrap { grid-template-columns: repeat(11, minma
   .nav-actions .btn-filter { width: 100%; padding: 8px 10px; }
   .dupes-rank-row { width: 100%; }
   .dupes-rank-row .btn { flex: 1; }
-  .nav-label { order: 2; width: 100%; }
-  .cs-wrap { order: 3; min-width: 0; flex: 1 1 calc(100% - 70px); }
+  .nav-label { order: 2; flex-shrink: 0; }
+  .cs-wrap { order: 2; min-width: 0; flex: 1; }
   .view-toggle { display: none; }
 
   .teams-row,
@@ -899,7 +899,7 @@ body.view-line .fwc-sub .stickers-wrap { grid-template-columns: repeat(11, minma
 </div>
 
 <div class="nav-bar">
-  <span class="nav-label">Seleção rápida de times</span>
+  <span class="nav-label">Seleção rápida</span>
   <div class="cs-wrap" id="csWrap">
     <button class="cs-trigger" id="csTrigger" onclick="toggleCs()">
       <span id="csLabel">— Selecione um time —</span>
