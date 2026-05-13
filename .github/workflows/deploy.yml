@@ -29,21 +29,36 @@ jobs:
           CONTENT=$(python3 -c "import json; print(json.dumps(open('firestore.rules').read()))")
 
           # Cria novo ruleset
-          RULESET=$(curl -sf -X POST \
+          curl -sf -X POST \
             -H "Authorization: Bearer $TOKEN" \
             -H "Content-Type: application/json" \
             -d "{\"source\":{\"files\":[{\"name\":\"firestore.rules\",\"content\":$CONTENT}]}}" \
-            "https://firebaserules.googleapis.com/v1/projects/album-copa-26/rulesets")
-          NAME=$(echo "$RULESET" | python3 -c "import sys,json; print(json.load(sys.stdin)['name'])")
-          echo "Ruleset criado: $NAME"
+            "https://firebaserules.googleapis.com/v1/projects/album-copa-26/rulesets" \
+            > /tmp/ruleset.json
+          cat /tmp/ruleset.json
 
-          # Vincula o ruleset ao release cloud.firestore (só rulesetName no body)
-          RESP=$(curl -s -o /tmp/patch.json -w "%{http_code}" -X PATCH \
+          # Extrai o nome e monta o body via Python (evita problemas de quoting)
+          python3 << 'PYEOF'
+          import json
+          with open('/tmp/ruleset.json') as f:
+              ruleset = json.load(f)
+          name = ruleset['name']
+          print(f"Ruleset: {name}")
+          with open('/tmp/patch_body.json', 'w') as f:
+              json.dump({'rulesetName': name}, f)
+          PYEOF
+
+          echo "Body que será enviado:"
+          cat /tmp/patch_body.json
+
+          # Vincula ao release cloud.firestore
+          RESP=$(curl -s -o /tmp/patch_resp.json -w "%{http_code}" -X PATCH \
             -H "Authorization: Bearer $TOKEN" \
             -H "Content-Type: application/json" \
-            -d "{\"rulesetName\":\"$NAME\"}" \
+            --data-binary @/tmp/patch_body.json \
             "https://firebaserules.googleapis.com/v1/projects/album-copa-26/releases/cloud.firestore")
-          echo "PATCH HTTP $RESP"
-          cat /tmp/patch.json
+
+          echo "PATCH HTTP $RESP:"
+          cat /tmp/patch_resp.json
 
           [ "$RESP" -ge 200 ] && [ "$RESP" -lt 300 ] && echo "Rules implantadas!" || exit 1
