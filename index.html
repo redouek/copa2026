@@ -798,8 +798,8 @@ body.view-line .fwc-sub .stickers-wrap { grid-template-columns: repeat(11, minma
     </p>
     <ul>
       <li>Clique em qualquer chip <span style="background:#f0fff0;border:1px solid #90c090;border-radius:3px;padding:1px 6px;font-size:12px;color:#2a6e2a;font-weight:700">verde</span> para abrir o contador de repetidas</li>
-      <li>Use <strong>+</strong> e <strong>−</strong> para ajustar a quantidade — com 0 repetidas o <strong>−</strong> volta a figurinha para Faltando</li>
-      <li><strong>ZERAR</strong> remove todas as cópias extras sem mexer no álbum</li>
+      <li>Use <strong>+</strong> para adicionar cópias extras e <strong>−</strong> para remover — ao chegar a 0 e pressionar <strong>−</strong> novamente, um alerta pedirá confirmação antes de marcar a figurinha como Faltando</li>
+      <li><strong>ZERAR</strong> remove todas as cópias extras de uma vez, sem alterar o álbum</li>
       <li>O botão <span style="background:#e65100;color:white;border-radius:4px;padding:1px 7px;font-size:12px">🔁 Repetidas</span> mostra o resumo completo e permite <strong>imprimir a lista</strong> para levar às trocas</li>
     </ul>
     <label class="no-show-row">
@@ -1093,7 +1093,9 @@ function stepMinus() {
     persistDupes();
     scheduleSync();
   } else {
-    // 0 duplicates → volta para faltando
+    // 0 duplicates → pede confirmação antes de marcar como faltando
+    const label = numToLabel(n);
+    if (!confirm(`Marcar "${label}" como Faltando?\n\nIsso vai remover a figurinha do seu álbum.`)) return;
     state[n] = true;
     const el = document.getElementById('c' + n);
     if (el) { el.className = 'chip missing'; el.style.display = showMissing ? '' : 'none'; }
@@ -1209,6 +1211,8 @@ function printDupes() {
 }
 
 // ── Modal Novidade ──
+// Só é suprimido permanentemente quando o usuário marca "Não exibir novamente" e clica Entendi.
+// Fechar sem marcar → volta a aparecer na próxima visita.
 function closeWhatsNew() {
   if (document.getElementById('whatsNewNoShow').checked) {
     storageSet('copa2026_whatsNew_dupes', '1');
