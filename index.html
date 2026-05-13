@@ -978,7 +978,7 @@ body.view-line .fwc-sub .stickers-wrap { grid-template-columns: repeat(11, minma
       </div>
 
       <div class="sponsor-save-row">
-        <button class="btn btn-green" onclick="saveSponsorConfig()" style="flex:1;padding:10px">💾 Salvar configurações</button>
+        <button id="btnSaveSponsor" class="btn btn-green" onclick="saveSponsorConfig()" style="flex:1;padding:10px">💾 Salvar configurações</button>
         <button class="btn" onclick="clearSponsorConfig()" style="padding:10px;color:#c62828">🗑️ Limpar</button>
       </div>
       <div id="sponsorSaveStatus" style="font-size:13px;color:#888;padding:4px 0"></div>
@@ -2403,7 +2403,10 @@ function previewSponsorFile(input, previewId, areaId) {
 
 async function saveSponsorConfig() {
   const statusEl = document.getElementById('sponsorSaveStatus');
-  statusEl.textContent = 'Salvando…';
+  const btn = document.getElementById('btnSaveSponsor');
+  btn.disabled = true;
+  btn.textContent = '⏳ Salvando…';
+  statusEl.textContent = '';
   try {
     const active = document.getElementById('sponsorActive').checked;
     const config = { active, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
@@ -2437,13 +2440,18 @@ async function saveSponsorConfig() {
     if (promoLink) config.promoLink = promoLink;
 
     await db.collection('config').doc('sponsor').set(config, { merge: true });
-    statusEl.textContent = '✅ Salvo!';
-    setTimeout(() => { statusEl.textContent = ''; }, 3000);
 
     const fullDoc = await db.collection('config').doc('sponsor').get();
     applySponsorConfig(fullDoc.exists ? fullDoc.data() : null);
+
+    statusEl.textContent = '✅ Salvo!';
+    setTimeout(() => { statusEl.textContent = ''; }, 3000);
   } catch(e) {
-    statusEl.textContent = '❌ Erro: ' + e.message;
+    console.error('Erro ao salvar patrocínio:', e);
+    statusEl.textContent = '❌ Erro: ' + (e.message || String(e));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '💾 Salvar configurações';
   }
 }
 
