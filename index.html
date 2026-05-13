@@ -40,6 +40,17 @@ header h1 { font-size: 18px; font-weight: 700; }
   display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
 }
 .action-buttons { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+#toolbarToggle {
+  display: none; /* só visível no mobile */
+  align-items: center; gap: 5px; padding: 5px 12px;
+  border: 1px solid #ddd; border-radius: 20px;
+  background: #f5f5f5; color: #555; font-size: 13px; font-weight: 600;
+  cursor: pointer; touch-action: manipulation; white-space: nowrap;
+  transition: background 0.15s;
+}
+#toolbarToggle:hover { background: #e8e8e8; }
+#toolbarChevron { font-size: 11px; display: inline-block; transition: transform 0.25s; }
+.toolbar.expanded #toolbarChevron { transform: rotate(180deg); }
 .btn {
   padding: 6px 14px; border: none; border-radius: 5px;
   cursor: pointer; font-size: 13px; font-weight: 600; transition: opacity 0.15s;
@@ -429,10 +440,12 @@ body.view-line .fwc-sub .stickers-wrap { grid-template-columns: repeat(11, minma
   }
   .album-percent { font-size: 24px; padding-right: 7px; }
 
-  .toolbar { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
-  .action-buttons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .toolbar { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px; }
+  #toolbarToggle { display: flex; order: 1; }
+  .auth-area { order: 2; margin-left: auto; justify-content: flex-end; flex-wrap: wrap; }
+  .action-buttons { order: 3; width: 100%; display: none; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .toolbar.expanded .action-buttons { display: grid; }
   .action-buttons .btn { width: 100%; padding-left: 6px; padding-right: 6px; }
-  .auth-area { margin-left: 0; justify-content: flex-start; flex-wrap: wrap; }
 
   .nav-bar { flex-wrap: wrap; align-items: stretch; gap: 8px; }
   .nav-actions {
@@ -724,7 +737,8 @@ body.view-line .fwc-sub .stickers-wrap { grid-template-columns: repeat(11, minma
   </div>
 </div>
 
-<div class="toolbar">
+<div class="toolbar" id="mainToolbar">
+  <button id="toolbarToggle" onclick="toggleToolbar()">⚙️ Ferramentas <span id="toolbarChevron">▾</span></button>
   <div class="action-buttons">
     <button class="btn btn-green"  onclick="printMissing()">🖨️ Imprimir Faltantes</button>
     <button class="btn btn-blue"   onclick="importList()">📋 Importar Lista</button>
@@ -1205,6 +1219,11 @@ function buildDupesSection(name, iso2, items) {
 }
 function closeDupesPanel() {
   document.getElementById('dupesModal').classList.remove('open');
+}
+function toggleToolbar() {
+  const toolbar = document.getElementById('mainToolbar');
+  const expanded = toolbar.classList.toggle('expanded');
+  storageSet('copa2026_toolbarExpanded', expanded ? '1' : '0');
 }
 function printDupes() {
   const total = countTotalDupes();
@@ -2408,6 +2427,9 @@ updateStats();
 applyFilter();
 initFirebase();
 maybeShowWhatsNew();
+if (storageGet('copa2026_toolbarExpanded') === '1') {
+  document.getElementById('mainToolbar').classList.add('expanded');
+}
 window.addEventListener('beforeunload', persist);
 </script>
 </body>
