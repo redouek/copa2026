@@ -23,11 +23,11 @@ jobs:
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ALBUM_COPA_26 }}
 
-      - name: Deploy Firestore rules via REST API
+      - name: Deploy Firestore rules
         run: |
           pip install google-auth requests -q
           python3 << 'PYEOF'
-          import os, json, requests, sys
+          import os, json, requests
           from google.oauth2 import service_account
           from google.auth.transport.requests import Request as AuthRequest
 
@@ -48,35 +48,19 @@ jobs:
           base = f'https://firebaserules.googleapis.com/v1/projects/{project}'
           hdrs = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}
 
-          # Cria ruleset
           r = requests.post(f'{base}/rulesets', headers=hdrs,
               data=json.dumps({'source': {'files': [{'name': 'firestore.rules', 'content': content}]}}))
           r.raise_for_status()
           ruleset_name = r.json()['name']
-          print(f'Ruleset: {ruleset_name}')
+          print(f'Ruleset criado: {ruleset_name}')
 
           release_res = f'projects/{project}/releases/cloud.firestore'
-          url = f'{base}/releases/cloud.firestore'
-
-          # Testa múltiplos formatos, para no primeiro que funcionar
-          formats = [
-              ('F1: UpdateReleaseRequest com release.name', None,
-               {'release': {'name': release_res, 'rulesetName': ruleset_name}, 'updateMask': 'rulesetName'}),
-              ('F2: UpdateReleaseRequest sem release.name', None,
-               {'release': {'rulesetName': ruleset_name}, 'updateMask': 'rulesetName'}),
-              ('F3: Release direto sem updateMask', None,
-               {'name': release_res, 'rulesetName': ruleset_name}),
-              ('F4: Release direto com updateMask query', {'updateMask': 'rulesetName'},
-               {'name': release_res, 'rulesetName': ruleset_name}),
-          ]
-
-          for desc, params, body in formats:
-              r = requests.patch(url, headers=hdrs, params=params, data=json.dumps(body))
-              print(f'{desc}: {r.status_code}: {r.text[:400]}')
-              if r.status_code == 200:
-                  print('Firestore rules implantadas com sucesso!')
-                  sys.exit(0)
-
-          print('Nenhum formato funcionou')
-          sys.exit(1)
+          r = requests.patch(f'{base}/releases/cloud.firestore', headers=hdrs,
+              data=json.dumps({
+                  'release': {'name': release_res, 'rulesetName': ruleset_name},
+                  'updateMask': 'rulesetName'
+              }))
+          r.raise_for_status()
+          print(f'Release atualizado: {r.json()["name"]}')
+          print('Firestore rules implantadas com sucesso!')
           PYEOF
