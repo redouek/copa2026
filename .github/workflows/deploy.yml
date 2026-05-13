@@ -23,48 +23,48 @@ jobs:
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ALBUM_COPA_26 }}
 
-      - name: Deploy Firestore rules via REST API
+      - name: Deploy Firestore rules via Python SDK
         run: |
-          TOKEN=$(gcloud auth print-access-token)
-
-          # Lista releases existentes para encontrar o nome correto
-          echo "=== Releases existentes ==="
-          curl -s \
-            -H "Authorization: Bearer $TOKEN" \
-            "https://firebaserules.googleapis.com/v1/projects/album-copa-26/releases" \
-            | python3 -c "
-          import sys, json
-          data = json.load(sys.stdin)
-          for r in data.get('releases', []):
-              print(r.get('name','?'), '->', r.get('rulesetName','?'))
-          "
-
-          # Cria novo ruleset
-          CONTENT=$(python3 -c "import json; print(json.dumps(open('firestore.rules').read()))")
-          curl -sf -X POST \
-            -H "Authorization: Bearer $TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "{\"source\":{\"files\":[{\"name\":\"firestore.rules\",\"content\":$CONTENT}]}}" \
-            "https://firebaserules.googleapis.com/v1/projects/album-copa-26/rulesets" \
-            > /tmp/ruleset.json
-
+          pip install google-api-python-client google-auth -q
           python3 << 'PYEOF'
-          import json
-          with open('/tmp/ruleset.json') as f:
-              ruleset = json.load(f)
-          name = ruleset['name']
-          print(f"Ruleset criado: {name}")
-          with open('/tmp/patch_body.json', 'w') as f:
-              json.dump({'rulesetName': name}, f)
+          import os
+          from googleapiclient.discovery import build
+          from google.oauth2 import service_account
+
+          creds = service_account.Credentials.from_service_account_file(
+              os.environ['GOOGLE_APPLICATION_CREDENTIALS'],
+              scopes=[
+                  'https://www.googleapis.com/auth/firebase',
+                  'https://www.googleapis.com/auth/cloud-platform'
+              ]
+          )
+          svc = build('firebaserules', 'v1', credentials=creds, cache_discovery=False)
+
+          with open('firestore.rules') as f:
+              content = f.read()
+
+          ruleset = svc.projects().rulesets().create(
+              name='projects/album-copa-26',
+              body={'source': {'files': [{'name': 'firestore.rules', 'content': content}]}}
+          ).execute()
+          print(f"Ruleset criado: {ruleset['name']}")
+
+          try:
+              release = svc.projects().releases().patch(
+                  name='projects/album-copa-26/releases/cloud.firestore',
+                  body={'rulesetName': ruleset['name']}
+              ).execute()
+              print(f"Release atualizado: {release['name']}")
+          except Exception as e:
+              print(f"PATCH falhou ({e}), criando release...")
+              release = svc.projects().releases().create(
+                  name='projects/album-copa-26',
+                  body={
+                      'name': 'projects/album-copa-26/releases/cloud.firestore',
+                      'rulesetName': ruleset['name']
+                  }
+              ).execute()
+              print(f"Release criado: {release['name']}")
+
+          print("Firestore rules implantadas com sucesso!")
           PYEOF
-
-          # Tenta PATCH no release cloud.firestore
-          RESP=$(curl -s -o /tmp/patch_resp.json -w "%{http_code}" -X PATCH \
-            -H "Authorization: Bearer $TOKEN" \
-            -H "Content-Type: application/json" \
-            --data-binary @/tmp/patch_body.json \
-            "https://firebaserules.googleapis.com/v1/projects/album-copa-26/releases/cloud.firestore")
-          echo "PATCH HTTP $RESP:"
-          cat /tmp/patch_resp.json
-
-          [ "$RESP" -ge 200 ] && [ "$RESP" -lt 300 ] && echo "Rules implantadas!" || exit 1
