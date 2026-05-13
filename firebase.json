@@ -5,6 +5,7 @@
       "firebase.json",
       "firestore.rules",
       "storage.rules",
+      "cors.json",
       ".firebaserc",
       ".gitignore",
       ".git/**",

@@ -2116,7 +2116,6 @@ function initFirebase() {
     db      = firebase.firestore();
     storage = firebase.storage();
     auth.onAuthStateChanged(onAuthChanged);
-    loadSponsorConfig();
   } catch(e) {
     console.warn('Firebase não inicializado:', e.message);
   }
@@ -2131,6 +2130,7 @@ async function onAuthChanged(user) {
     await loadFromFirestore(user.uid);
     refreshAll();
     setSyncBadge('ok', '☁️ sincronizado');
+    loadSponsorConfig();
     document.getElementById('btnLogin').style.display   = 'none';
     document.getElementById('userMenuWrap').style.display = '';
     document.getElementById('btnRanking').style.display  = '';

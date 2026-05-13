@@ -1,0 +1,11 @@
+[
+  {
+    "origin": [
+      "https://album-copa-26.web.app",
+      "https://album-copa-26.firebaseapp.com"
+    ],
+    "method": ["GET", "POST", "PUT", "DELETE", "HEAD"],
+    "responseHeader": ["Content-Type", "Authorization"],
+    "maxAgeSeconds": 3600
+  }
+]
