@@ -23,8 +23,24 @@ jobs:
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ALBUM_COPA_26 }}
 
-      - name: Instalar Firebase CLI
-        run: npm install -g firebase-tools
+      - name: Deploy Firestore rules via REST API
+        run: |
+          TOKEN=$(gcloud auth print-access-token)
+          CONTENT=$(python3 -c "import json; print(json.dumps(open('firestore.rules').read()))")
 
-      - name: Deploy Firestore rules
-        run: firebase deploy --only firestore:rules --project album-copa-26
+          RULESET=$(curl -sf -X POST \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"source\":{\"files\":[{\"name\":\"firestore.rules\",\"content\":$CONTENT}]}}" \
+            "https://firebaserules.googleapis.com/v1/projects/album-copa-26/rulesets")
+
+          NAME=$(echo "$RULESET" | python3 -c "import sys,json; print(json.load(sys.stdin)['name'])")
+          echo "Ruleset criado: $NAME"
+
+          curl -sf -X PATCH \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"name\":\"projects/album-copa-26/releases/cloud.firestore\",\"rulesetName\":\"$NAME\"}" \
+            "https://firebaserules.googleapis.com/v1/projects/album-copa-26/releases/cloud.firestore"
+
+          echo "Firestore rules implantadas com sucesso"
