@@ -311,21 +311,23 @@ main { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 12px; }
 
 /* ── Promo modal ── */
 .promo-modal-box {
-  max-width: 540px; padding: 0; overflow: hidden;
-  position: relative;
+  max-width: 540px; padding: 0; overflow: visible;
+  background: transparent !important; box-shadow: none !important;
+  border-radius: 0 !important; position: relative;
 }
 .promo-close-btn {
-  position: absolute; top: 8px; right: 8px; z-index: 10;
-  background: rgba(0,0,0,.45); color: white; border: none;
-  border-radius: 50%; width: 30px; height: 30px; font-size: 16px;
+  position: absolute; top: -12px; right: -12px; z-index: 10;
+  background: rgba(0,0,0,.6); color: white; border: none;
+  border-radius: 50%; width: 32px; height: 32px; font-size: 18px;
   cursor: pointer; display: flex; align-items: center; justify-content: center;
 }
-#promoImg { width: 100%; display: block; max-height: 400px; object-fit: contain; }
+#promoImg { width: 100%; display: block; max-height: 70vh; object-fit: contain; border-radius: 8px; }
 .promo-footer {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 14px; background: #f9f9f9; border-top: 1px solid #eee;
+  padding: 8px 14px; background: rgba(0,0,0,.55); border-radius: 0 0 8px 8px;
+  margin-top: -6px;
 }
-.promo-footer label { font-size: 13px; color: #555; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.promo-footer label { font-size: 13px; color: #ddd; display: flex; align-items: center; gap: 6px; cursor: pointer; }
 .promo-footer .btn { padding: 6px 16px; }
 
 /* ── Summary cards filterable ── */
@@ -944,38 +946,9 @@ body.view-line .fwc-sub .stickers-wrap { grid-template-columns: repeat(11, minma
         </label>
       </div>
 
-      <div class="sponsor-section">
-        <h3>Logo do patrocinador</h3>
-        <div class="sponsor-dim">Quadrado · Recomendado: 100×100px · Exibido no cabeçalho (44×44px)</div>
-        <input type="file" id="logoFile" accept="image/*" style="display:none" onchange="previewSponsorFile(this,'logoPreview','logoUploadArea')">
-        <div class="upload-area" id="logoUploadArea" onclick="document.getElementById('logoFile').click()" style="height:80px;width:80px">
-          <div class="upload-placeholder" id="logoPlaceholder"><div>🖼️</div><div>Logo</div></div>
-          <img class="upload-preview" id="logoPreview" style="display:none">
-        </div>
-        <input class="modal-input" id="logoLinkUrl" type="url" placeholder="URL de destino ao clicar (opcional)" style="margin-top:8px">
-      </div>
+      <div id="sponsorsContainer"></div>
 
-      <div class="sponsor-section">
-        <h3>Banner publicitário</h3>
-        <div class="sponsor-dim">Recomendado: 900×120px (horizontal) · Altura máxima exibida: 120px · Proporcão ~7:1</div>
-        <input type="file" id="bannerFile" accept="image/*" style="display:none" onchange="previewSponsorFile(this,'bannerPreview','bannerUploadArea')">
-        <div class="upload-area" id="bannerUploadArea" onclick="document.getElementById('bannerFile').click()" style="height:80px;width:100%">
-          <div class="upload-placeholder" id="bannerPlaceholder"><div>🖼️</div><div>Banner (clique para selecionar)</div></div>
-          <img class="upload-preview" id="bannerPreview" style="display:none">
-        </div>
-        <input class="modal-input" id="bannerLinkUrl" type="url" placeholder="URL de destino ao clicar (opcional)" style="margin-top:8px">
-      </div>
-
-      <div class="sponsor-section">
-        <h3>Modal promocional</h3>
-        <div class="sponsor-dim">Recomendado: 600×400px · Largura máxima exibida: 540px · Proporção ~3:2</div>
-        <input type="file" id="promoFile" accept="image/*" style="display:none" onchange="previewSponsorFile(this,'promoPreview','promoUploadArea')">
-        <div class="upload-area" id="promoUploadArea" onclick="document.getElementById('promoFile').click()" style="height:120px;width:100%">
-          <div class="upload-placeholder" id="promoPlaceholder"><div>🖼️</div><div>Modal promocional (clique para selecionar)</div></div>
-          <img class="upload-preview" id="promoPreview" style="display:none">
-        </div>
-        <input class="modal-input" id="promoLinkUrl" type="url" placeholder="URL de destino ao clicar (opcional)" style="margin-top:8px">
-      </div>
+      <button class="btn" onclick="addSponsorSlot()" style="width:100%;margin:12px 0;padding:9px;border:2px dashed #bbb;background:#fafafa;color:#555">+ Adicionar patrocinador</button>
 
       <div class="sponsor-save-row">
         <button id="btnSaveSponsor" class="btn btn-green" onclick="saveSponsorConfig()" style="flex:1;padding:10px">💾 Salvar configurações</button>
@@ -2420,6 +2393,76 @@ function compressImage(file, maxW, maxH, quality) {
   });
 }
 
+// ── Sponsor multi-slot system ──
+let _sponsorNextId = 0;
+window._sponsorSlotData = {};
+
+function _sponsorSlotHTML(id, slot) {
+  const has = k => slot[k] ? '' : 'display:none';
+  const src  = k => slot[k] ? ` src="${slot[k]}"` : '';
+  return `
+    <div class="sponsor-slot" id="sponsorSlot-${id}" data-id="${id}">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0 4px;font-weight:600;font-size:15px;color:#333">
+        <span>Patrocinador</span>
+        <button class="btn" style="padding:3px 10px;font-size:12px;color:#c62828;border-color:#c62828" onclick="removeSponsorSlot(${id})">Remover</button>
+      </div>
+      <div class="sponsor-section">
+        <h3>Logo</h3>
+        <div class="sponsor-dim">Quadrado · Recomendado: 100×100px · Exibido no cabeçalho (44×44px)</div>
+        <input type="file" id="logoFile-${id}" accept="image/*" style="display:none" onchange="previewSponsorFile(this,'logoPreview-${id}','logoUploadArea-${id}')">
+        <div class="upload-area" id="logoUploadArea-${id}" onclick="document.getElementById('logoFile-${id}').click()" style="height:80px;width:80px">
+          <div class="upload-placeholder" id="logoPlaceholder-${id}" style="${slot.logoUrl ? 'display:none' : ''}"><div>🖼️</div><div>Logo</div></div>
+          <img class="upload-preview" id="logoPreview-${id}"${src('logoUrl')} style="${has('logoUrl')}">
+        </div>
+        <input class="modal-input" id="logoLinkUrl-${id}" type="url" placeholder="URL ao clicar (opcional)" style="margin-top:8px" value="${slot.logoLink || ''}">
+      </div>
+      <div class="sponsor-section">
+        <h3>Banner</h3>
+        <div class="sponsor-dim">Recomendado: 900×120px · Proporção ~7:1</div>
+        <input type="file" id="bannerFile-${id}" accept="image/*" style="display:none" onchange="previewSponsorFile(this,'bannerPreview-${id}','bannerUploadArea-${id}')">
+        <div class="upload-area" id="bannerUploadArea-${id}" onclick="document.getElementById('bannerFile-${id}').click()" style="height:80px;width:100%">
+          <div class="upload-placeholder" id="bannerPlaceholder-${id}" style="${slot.bannerUrl ? 'display:none' : ''}"><div>🖼️</div><div>Banner (clique para selecionar)</div></div>
+          <img class="upload-preview" id="bannerPreview-${id}"${src('bannerUrl')} style="${has('bannerUrl')}">
+        </div>
+        <input class="modal-input" id="bannerLinkUrl-${id}" type="url" placeholder="URL ao clicar (opcional)" style="margin-top:8px" value="${slot.bannerLink || ''}">
+      </div>
+      <div class="sponsor-section">
+        <h3>Modal promocional</h3>
+        <div class="sponsor-dim">Recomendado: 600×400px · Proporção ~3:2</div>
+        <input type="file" id="promoFile-${id}" accept="image/*" style="display:none" onchange="previewSponsorFile(this,'promoPreview-${id}','promoUploadArea-${id}')">
+        <div class="upload-area" id="promoUploadArea-${id}" onclick="document.getElementById('promoFile-${id}').click()" style="height:120px;width:100%">
+          <div class="upload-placeholder" id="promoPlaceholder-${id}" style="${slot.promoUrl ? 'display:none' : ''}"><div>🖼️</div><div>Modal (clique para selecionar)</div></div>
+          <img class="upload-preview" id="promoPreview-${id}"${src('promoUrl')} style="${has('promoUrl')}">
+        </div>
+        <input class="modal-input" id="promoLinkUrl-${id}" type="url" placeholder="URL ao clicar (opcional)" style="margin-top:8px" value="${slot.promoLink || ''}">
+      </div>
+    </div>`;
+}
+
+function addSponsorSlot(slotData = {}) {
+  const id = _sponsorNextId++;
+  window._sponsorSlotData[id] = slotData;
+  const container = document.getElementById('sponsorsContainer');
+  if (!container) return;
+  if (container.querySelector('.sponsor-slot')) {
+    const hr = document.createElement('hr');
+    hr.style.cssText = 'margin:16px 0;border:none;border-top:2px dashed #ddd';
+    container.appendChild(hr);
+  }
+  const div = document.createElement('div');
+  div.innerHTML = _sponsorSlotHTML(id, slotData);
+  container.appendChild(div.firstElementChild);
+}
+
+function removeSponsorSlot(id) {
+  const el = document.getElementById(`sponsorSlot-${id}`);
+  if (!el) return;
+  const prev = el.previousElementSibling;
+  if (prev && prev.tagName === 'HR') prev.remove();
+  el.remove();
+  delete window._sponsorSlotData[id];
+}
+
 async function saveSponsorConfig() {
   const statusEl = document.getElementById('sponsorSaveStatus');
   const btn = document.getElementById('btnSaveSponsor');
@@ -2428,31 +2471,39 @@ async function saveSponsorConfig() {
   statusEl.textContent = '';
   try {
     const active = document.getElementById('sponsorActive').checked;
-    const config = { active, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
-
-    const logoFile = document.getElementById('logoFile').files[0];
-    if (logoFile) config.logoUrl = await compressImage(logoFile, 200, 200, 0.85);
-    const logoLink = document.getElementById('logoLinkUrl').value.trim();
-    if (logoLink) config.logoLink = logoLink;
-
-    const bannerFile = document.getElementById('bannerFile').files[0];
-    if (bannerFile) config.bannerUrl = await compressImage(bannerFile, 900, 120, 0.85);
-    const bannerLink = document.getElementById('bannerLinkUrl').value.trim();
-    if (bannerLink) config.bannerLink = bannerLink;
-
-    const promoFile = document.getElementById('promoFile').files[0];
-    if (promoFile) {
-      config.promoUrl = await compressImage(promoFile, 600, 400, 0.85);
-      config.promoVersion = Date.now().toString();
+    const slots = Array.from(document.querySelectorAll('.sponsor-slot'));
+    const sponsors = [];
+    for (const slotEl of slots) {
+      const id = slotEl.dataset.id;
+      const saved = window._sponsorSlotData[id] || {};
+      const sponsor = {};
+      const logoFile   = document.getElementById(`logoFile-${id}`)?.files?.[0];
+      const bannerFile = document.getElementById(`bannerFile-${id}`)?.files?.[0];
+      const promoFile  = document.getElementById(`promoFile-${id}`)?.files?.[0];
+      if (logoFile)   sponsor.logoUrl   = await compressImage(logoFile,   200, 200, 0.85);
+      else if (saved.logoUrl)   sponsor.logoUrl   = saved.logoUrl;
+      const ll = document.getElementById(`logoLinkUrl-${id}`)?.value?.trim();
+      if (ll) sponsor.logoLink = ll;
+      if (bannerFile) sponsor.bannerUrl = await compressImage(bannerFile, 900, 120, 0.85);
+      else if (saved.bannerUrl) sponsor.bannerUrl = saved.bannerUrl;
+      const bl = document.getElementById(`bannerLinkUrl-${id}`)?.value?.trim();
+      if (bl) sponsor.bannerLink = bl;
+      if (promoFile) {
+        sponsor.promoUrl     = await compressImage(promoFile, 600, 400, 0.85);
+        sponsor.promoVersion = Date.now().toString() + '_' + id;
+      } else if (saved.promoUrl) {
+        sponsor.promoUrl     = saved.promoUrl;
+        sponsor.promoVersion = saved.promoVersion;
+      }
+      const pl = document.getElementById(`promoLinkUrl-${id}`)?.value?.trim();
+      if (pl) sponsor.promoLink = pl;
+      if (sponsor.logoUrl || sponsor.bannerUrl || sponsor.promoUrl) sponsors.push(sponsor);
     }
-    const promoLink = document.getElementById('promoLinkUrl').value.trim();
-    if (promoLink) config.promoLink = promoLink;
-
-    await db.collection('config').doc('sponsor').set(config, { merge: true });
-
+    await db.collection('config').doc('sponsor').set(
+      { active, sponsors, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }
+    );
     const fullDoc = await db.collection('config').doc('sponsor').get();
     applySponsorConfig(fullDoc.exists ? fullDoc.data() : null);
-
     statusEl.textContent = '✅ Salvo!';
     setTimeout(() => { statusEl.textContent = ''; }, 3000);
   } catch(e) {
@@ -2470,18 +2521,9 @@ async function clearSponsorConfig() {
   statusEl.textContent = 'Limpando…';
   try {
     await db.collection('config').doc('sponsor').delete();
-    ['logoFile', 'bannerFile', 'promoFile'].forEach(id => { document.getElementById(id).value = ''; });
-    ['logoPreview', 'bannerPreview', 'promoPreview'].forEach(id => {
-      const el = document.getElementById(id);
-      el.style.display = 'none';
-      el.src = '';
-    });
-    ['logoPlaceholder', 'bannerPlaceholder', 'promoPlaceholder'].forEach(id => {
-      document.getElementById(id).style.display = '';
-    });
-    ['logoLinkUrl', 'bannerLinkUrl', 'promoLinkUrl'].forEach(id => {
-      document.getElementById(id).value = '';
-    });
+    document.getElementById('sponsorsContainer').innerHTML = '';
+    _sponsorNextId = 0;
+    window._sponsorSlotData = {};
     document.getElementById('sponsorActive').checked = false;
     applySponsorConfig(null);
     statusEl.textContent = '✅ Limpo!';
@@ -2496,30 +2538,23 @@ async function loadSponsorConfig() {
     const doc = await db.collection('config').doc('sponsor').get();
     const data = doc.exists ? doc.data() : null;
     applySponsorConfig(data);
+    document.getElementById('sponsorActive').checked = !!(data && data.active);
+    document.getElementById('sponsorsContainer').innerHTML = '';
+    _sponsorNextId = 0;
+    window._sponsorSlotData = {};
+    let sponsors = [];
     if (data) {
-      document.getElementById('sponsorActive').checked = !!data.active;
-      if (data.logoUrl) {
-        const img = document.getElementById('logoPreview');
-        img.src = data.logoUrl; img.style.display = '';
-        const ph = document.getElementById('logoPlaceholder');
-        if (ph) ph.style.display = 'none';
+      if (Array.isArray(data.sponsors) && data.sponsors.length > 0) {
+        sponsors = data.sponsors;
+      } else if (data.logoUrl || data.bannerUrl || data.promoUrl) {
+        // migração do formato antigo (campo único) → array
+        sponsors = [{ logoUrl: data.logoUrl, logoLink: data.logoLink,
+          bannerUrl: data.bannerUrl, bannerLink: data.bannerLink,
+          promoUrl: data.promoUrl, promoLink: data.promoLink, promoVersion: data.promoVersion }];
       }
-      if (data.logoLink) document.getElementById('logoLinkUrl').value = data.logoLink;
-      if (data.bannerUrl) {
-        const img = document.getElementById('bannerPreview');
-        img.src = data.bannerUrl; img.style.display = '';
-        const ph = document.getElementById('bannerPlaceholder');
-        if (ph) ph.style.display = 'none';
-      }
-      if (data.bannerLink) document.getElementById('bannerLinkUrl').value = data.bannerLink;
-      if (data.promoUrl) {
-        const img = document.getElementById('promoPreview');
-        img.src = data.promoUrl; img.style.display = '';
-        const ph = document.getElementById('promoPlaceholder');
-        if (ph) ph.style.display = 'none';
-      }
-      if (data.promoLink) document.getElementById('promoLinkUrl').value = data.promoLink;
     }
+    if (sponsors.length === 0) sponsors = [{}];
+    sponsors.forEach(s => addSponsorSlot(s));
   } catch(e) {
     console.warn('Erro ao carregar config de patrocínio:', e);
   }
@@ -2527,12 +2562,19 @@ async function loadSponsorConfig() {
 
 function applySponsorConfig(config) {
   const active = config && config.active;
+  let sponsors = [];
+  if (active) {
+    if (Array.isArray(config.sponsors) && config.sponsors.length > 0) sponsors = config.sponsors;
+    else if (config.logoUrl || config.bannerUrl || config.promoUrl) sponsors = [config];
+  }
+  const slot = sponsors.length > 0 ? sponsors[Math.floor(Math.random() * sponsors.length)] : null;
+  window._sponsorPromoConfig = null;
 
   const logoLink = document.getElementById('sponsorLogoLink');
   const logoImg  = document.getElementById('sponsorLogoImg');
-  if (active && config.logoUrl) {
-    logoImg.src = config.logoUrl;
-    logoLink.href = config.logoLink || '#';
+  if (slot && slot.logoUrl) {
+    logoImg.src = slot.logoUrl;
+    logoLink.href = slot.logoLink || '#';
     logoLink.style.display = '';
     logoImg.style.display  = 'block';
   } else {
@@ -2543,19 +2585,17 @@ function applySponsorConfig(config) {
   const bannerSlot = document.getElementById('sponsorBannerSlot');
   const bannerLink = document.getElementById('sponsorBannerLink');
   const bannerImg  = document.getElementById('sponsorBannerImg');
-  if (active && config.bannerUrl) {
-    bannerImg.src  = config.bannerUrl;
-    bannerLink.href = config.bannerLink || '#';
+  if (slot && slot.bannerUrl) {
+    bannerImg.src   = slot.bannerUrl;
+    bannerLink.href = slot.bannerLink || '#';
     bannerSlot.style.display = '';
   } else {
     bannerSlot.style.display = 'none';
   }
 
-  if (active && config.promoUrl) {
-    window._sponsorPromoConfig = config;
+  if (slot && slot.promoUrl) {
+    window._sponsorPromoConfig = slot;
     maybeShowPromo();
-  } else {
-    window._sponsorPromoConfig = null;
   }
 }
 
@@ -2563,12 +2603,12 @@ function maybeShowPromo() {
   const config = window._sponsorPromoConfig;
   if (!config || !config.promoUrl) return;
   const version = config.promoVersion || 'v1';
-  if (storageGet('copa2026_promo_dismissed') === version) return;
+  if (storageGet('copa2026_promo_dismissed_' + version) === '1') return;
   const promoImg  = document.getElementById('promoImg');
   const promoLink = document.getElementById('promoImgLink');
   promoImg.src  = config.promoUrl;
   promoLink.href = config.promoLink || '#';
-  if (!config.promoLink) promoLink.style.pointerEvents = 'none';
+  promoLink.style.pointerEvents = config.promoLink ? '' : 'none';
   document.getElementById('promoNoShow').checked = false;
   document.getElementById('promoModal').classList.add('open');
 }
@@ -2576,7 +2616,7 @@ function maybeShowPromo() {
 function closePromoModal(fromButton) {
   if (fromButton && document.getElementById('promoNoShow').checked && window._sponsorPromoConfig) {
     const version = window._sponsorPromoConfig.promoVersion || 'v1';
-    storageSet('copa2026_promo_dismissed', version);
+    storageSet('copa2026_promo_dismissed_' + version, '1');
   }
   document.getElementById('promoModal').classList.remove('open');
 }
