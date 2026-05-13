@@ -486,6 +486,26 @@ body.view-line .fwc-sub .stickers-wrap { grid-template-columns: repeat(11, minma
   .cs-wrap { order: 2; min-width: 0; flex: 1; }
   .view-toggle { display: none; }
 
+  /* Admin table → cards */
+  .admin-table, .admin-table tbody { display: block; width: 100%; }
+  .admin-table thead { display: none; }
+  .admin-table tr {
+    display: flex; flex-wrap: wrap; align-items: flex-start;
+    padding: 10px 0; border-bottom: 1px solid #eee; gap: 2px;
+  }
+  .admin-table tr:last-child { border-bottom: none; }
+  .admin-table td { padding: 0; border: none; text-align: left; }
+  .admin-table td:nth-child(1) { order: 1; flex: 1; min-width: 0; font-size: 13px; }
+  .admin-table td:nth-child(2) { order: 4; font-size: 11px; color: #aaa; width: auto; }
+  .admin-table td:nth-child(3) { order: 3; width: 100%; font-size: 12px; color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-left: 31px; }
+  .admin-table td:nth-child(4) { order: 5; font-size: 12px; color: #555; }
+  .admin-table td:nth-child(4)::before { content: ' · T: '; color: #aaa; }
+  .admin-table td:nth-child(5) { order: 6; font-size: 12px; color: #555; }
+  .admin-table td:nth-child(5)::before { content: ' F: '; color: #aaa; }
+  .admin-table td:nth-child(6) { order: 2; white-space: nowrap; padding-left: 8px; }
+  .admin-avatar { width: 22px; height: 22px; }
+  .admin-nophoto { width: 22px; height: 22px; line-height: 22px; font-size: 13px; }
+
   .teams-row,
   body.view-line .teams-row {
     display: flex; flex-direction: column;
