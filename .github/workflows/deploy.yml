@@ -28,7 +28,7 @@ jobs:
           TOKEN=$(gcloud auth print-access-token)
           CONTENT=$(python3 -c "import json; print(json.dumps(open('firestore.rules').read()))")
 
-          # Cria novo ruleset com o conteúdo de firestore.rules
+          # Cria novo ruleset
           RULESET=$(curl -sf -X POST \
             -H "Authorization: Bearer $TOKEN" \
             -H "Content-Type: application/json" \
@@ -37,24 +37,13 @@ jobs:
           NAME=$(echo "$RULESET" | python3 -c "import sys,json; print(json.load(sys.stdin)['name'])")
           echo "Ruleset criado: $NAME"
 
-          RELEASE_BODY="{\"name\":\"projects/album-copa-26/releases/cloud.firestore\",\"rulesetName\":\"$NAME\"}"
-
-          # Tenta atualizar release existente
-          HTTP=$(curl -s -o /tmp/patch.json -w "%{http_code}" -X PATCH \
+          # Vincula o ruleset ao release cloud.firestore (só rulesetName no body)
+          RESP=$(curl -s -o /tmp/patch.json -w "%{http_code}" -X PATCH \
             -H "Authorization: Bearer $TOKEN" \
             -H "Content-Type: application/json" \
-            -d "$RELEASE_BODY" \
+            -d "{\"rulesetName\":\"$NAME\"}" \
             "https://firebaserules.googleapis.com/v1/projects/album-copa-26/releases/cloud.firestore")
+          echo "PATCH HTTP $RESP"
+          cat /tmp/patch.json
 
-          if [ "$HTTP" -ge 200 ] && [ "$HTTP" -lt 300 ]; then
-            echo "Release atualizado (HTTP $HTTP)"
-          else
-            echo "PATCH falhou (HTTP $HTTP) — tentando criar release..."
-            cat /tmp/patch.json
-            curl -sf -X POST \
-              -H "Authorization: Bearer $TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "$RELEASE_BODY" \
-              "https://firebaserules.googleapis.com/v1/projects/album-copa-26/releases"
-            echo "Release criado"
-          fi
+          [ "$RESP" -ge 200 ] && [ "$RESP" -lt 300 ] && echo "Rules implantadas!" || exit 1
