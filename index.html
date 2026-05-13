@@ -224,6 +224,14 @@ main { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 12px; }
 .btn-auth    { background: #4285f4; color: white; }
 .btn-dupes   { background: #e65100; color: white; }
 .dupes-rank-row { display: flex; gap: 6px; align-items: center; }
+.ranking-card { padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
+.ranking-card:last-child { border-bottom: none; }
+.rc-row1 { display: flex; align-items: center; gap: 8px; }
+.rc-pos { font-size: 13px; font-weight: 900; color: #999; min-width: 26px; flex-shrink: 0; }
+.rc-name { flex: 1; font-size: 16px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rc-pct { font-size: 16px; font-weight: 900; color: #1a237e; flex-shrink: 0; }
+.rc-row2 { display: flex; align-items: center; gap: 8px; margin-top: 4px; padding-left: 34px; }
+.rc-stats { flex: 1; font-size: 13px; color: #666; }
 .btn-trade {
   background: #ffc400; color: #333; border: none; border-radius: 6px;
   padding: 4px 10px; font-size: 12px; font-weight: 700; cursor: pointer; touch-action: manipulation;
@@ -526,20 +534,6 @@ body.view-line .fwc-sub .stickers-wrap { grid-template-columns: repeat(11, minma
   .admin-avatar { width: 22px; height: 22px; }
   .admin-nophoto { width: 22px; height: 22px; line-height: 22px; font-size: 13px; }
 
-  /* Ranking → cards legíveis */
-  .ranking-table, .ranking-table tbody { display: block; width: 100%; }
-  .ranking-table thead { display: none; }
-  .ranking-table tr {
-    display: flex; flex-wrap: wrap; align-items: center;
-    padding: 12px 0; border-bottom: 1px solid #f0f0f0; gap: 4px;
-  }
-  .ranking-table tr:last-child { border-bottom: none; }
-  .ranking-table td { padding: 0; border: none; }
-  .ranking-table td:nth-child(1) { order: 1; font-size: 13px; font-weight: 900; color: #999; min-width: 28px; }
-  .ranking-table td:nth-child(2) { order: 2; flex: 1; font-size: 16px; min-width: 0; }
-  .ranking-table td:nth-child(3) { order: 4; flex: 1; font-size: 13px; color: #666; padding-left: 28px; }
-  .ranking-table td:nth-child(4) { order: 3; font-size: 16px; font-weight: 900; color: #1a237e; white-space: nowrap; }
-  .ranking-table td:nth-child(5) { order: 4; }
 
   .teams-row,
   body.view-line .teams-row {
@@ -2232,28 +2226,24 @@ function renderRankingTable() {
     return;
   }
   const medals = ['🥇', '🥈', '🥉'];
-  const rows = rowsData.map((u, i) => {
-    const avatar = i < 3
-      ? `<span class="ranking-avatar ranking-medal">${medals[i]}</span>`
-      : '<span class="ranking-avatar">👤</span>';
+  const cards = rowsData.map((u, i) => {
+    const medal = i < 3 ? medals[i] : '';
     const status = u.haveCount >= 980
       ? '<span class="complete-badge">🏆 COMPLETOU!</span>'
-      : `<span>Tenho: ${u.haveCount} · Faltam: ${u.missingCount}</span>`;
+      : `<span class="rc-stats">Tenho: ${u.haveCount} · Faltam: ${u.missingCount}</span>`;
     const percent = Math.round((u.haveCount / 980) * 100);
     const hasDupes = Object.values(u.dupes || {}).some(v => v > 0);
     const tradeBtn = hasDupes ? `<button class="btn-trade" onclick="openTradeModal('${escapeHtml(u.id)}')">🔁 Repetidas</button>` : '';
-    return `<tr>
-      <td class="num" style="font-weight:900">${i + 1}º</td>
-      <td>${avatar}${escapeHtml(u.rankingName)}</td>
-      <td>${status}</td>
-      <td class="num" style="font-weight:900">${percent}%</td>
-      <td>${tradeBtn}</td>
-    </tr>`;
+    return `<div class="ranking-card">
+      <div class="rc-row1">
+        <span class="rc-pos">${i + 1}º</span>
+        <span class="rc-name">${medal} ${escapeHtml(u.rankingName)}</span>
+        <span class="rc-pct">${percent}%</span>
+      </div>
+      <div class="rc-row2">${status}${tradeBtn}</div>
+    </div>`;
   }).join('');
-  listEl.innerHTML = `<table class="admin-table ranking-table">
-    <thead><tr><th>Pos.</th><th>Colecionador</th><th>Tenho / Faltam</th><th>%</th><th></th></tr></thead>
-    <tbody>${rows}</tbody>
-  </table>`;
+  listEl.innerHTML = `<div class="ranking-list">${cards}</div>`;
 }
 
 function closeRankingPanel() { document.getElementById('rankingModal').classList.remove('open'); }
