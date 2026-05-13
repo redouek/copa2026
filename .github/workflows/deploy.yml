@@ -49,22 +49,15 @@ jobs:
           ).execute()
           print(f"Ruleset criado: {ruleset['name']}")
 
-          try:
-              release = svc.projects().releases().patch(
-                  name='projects/album-copa-26/releases/cloud.firestore',
-                  body={'rulesetName': ruleset['name']}
-              ).execute()
-              print(f"Release atualizado: {release['name']}")
-          except Exception as e:
-              print(f"PATCH falhou ({e}), criando release...")
-              release = svc.projects().releases().create(
-                  name='projects/album-copa-26',
-                  body={
-                      'name': 'projects/album-copa-26/releases/cloud.firestore',
-                      'rulesetName': ruleset['name']
-                  }
-              ).execute()
-              print(f"Release criado: {release['name']}")
+          # PATCH espera UpdateReleaseRequest: { release: Release, updateMask }
+          release = svc.projects().releases().patch(
+              name='projects/album-copa-26/releases/cloud.firestore',
+              body={
+                  'release': {'rulesetName': ruleset['name']},
+                  'updateMask': 'rulesetName'
+              }
+          ).execute()
+          print(f"Release atualizado: {release['name']}")
 
           print("Firestore rules implantadas com sucesso!")
           PYEOF
