@@ -2401,6 +2401,25 @@ function previewSponsorFile(input, previewId, areaId) {
   reader.readAsDataURL(file);
 }
 
+function compressImage(file, maxW, maxH, quality) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let w = img.width, h = img.height;
+      if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+      if (h > maxH) { w = Math.round(w * maxH / h); h = maxH; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
 async function saveSponsorConfig() {
   const statusEl = document.getElementById('sponsorSaveStatus');
   const btn = document.getElementById('btnSaveSponsor');
@@ -2412,28 +2431,18 @@ async function saveSponsorConfig() {
     const config = { active, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
 
     const logoFile = document.getElementById('logoFile').files[0];
-    if (logoFile) {
-      const ref = storage.ref('sponsor/logo');
-      await ref.put(logoFile);
-      config.logoUrl = await ref.getDownloadURL();
-    }
+    if (logoFile) config.logoUrl = await compressImage(logoFile, 200, 200, 0.85);
     const logoLink = document.getElementById('logoLinkUrl').value.trim();
     if (logoLink) config.logoLink = logoLink;
 
     const bannerFile = document.getElementById('bannerFile').files[0];
-    if (bannerFile) {
-      const ref = storage.ref('sponsor/banner');
-      await ref.put(bannerFile);
-      config.bannerUrl = await ref.getDownloadURL();
-    }
+    if (bannerFile) config.bannerUrl = await compressImage(bannerFile, 900, 120, 0.85);
     const bannerLink = document.getElementById('bannerLinkUrl').value.trim();
     if (bannerLink) config.bannerLink = bannerLink;
 
     const promoFile = document.getElementById('promoFile').files[0];
     if (promoFile) {
-      const ref = storage.ref('sponsor/promo');
-      await ref.put(promoFile);
-      config.promoUrl = await ref.getDownloadURL();
+      config.promoUrl = await compressImage(promoFile, 600, 400, 0.85);
       config.promoVersion = Date.now().toString();
     }
     const promoLink = document.getElementById('promoLinkUrl').value.trim();
