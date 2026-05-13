@@ -48,6 +48,10 @@ jobs:
           base = f'https://firebaserules.googleapis.com/v1/projects/{project}'
           hdrs = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}
 
+          # Diagnóstico: GET release atual para ver os nomes reais dos campos
+          r = requests.get(f'{base}/releases/cloud.firestore', headers=hdrs)
+          print(f'GET release {r.status_code}: {r.text}')
+
           # Cria ruleset
           r = requests.post(f'{base}/rulesets', headers=hdrs,
               data=json.dumps({'source': {'files': [{'name': 'firestore.rules', 'content': content}]}}))
@@ -55,17 +59,17 @@ jobs:
           ruleset_name = r.json()['name']
           print(f'Ruleset criado: {ruleset_name}')
 
-          # Atualiza release (updateMask como query param, body = Release resource)
+          # Tenta PATCH com snake_case (ruleset_name em vez de rulesetName)
           r = requests.patch(
               f'{base}/releases/cloud.firestore',
               headers=hdrs,
-              params={'updateMask': 'rulesetName'},
+              params={'updateMask': 'ruleset_name'},
               data=json.dumps({
                   'name': f'projects/{project}/releases/cloud.firestore',
-                  'rulesetName': ruleset_name
+                  'ruleset_name': ruleset_name
               })
           )
-          print(f'PATCH {r.status_code}: {r.text}')
+          print(f'PATCH snake_case {r.status_code}: {r.text}')
           r.raise_for_status()
           print(f'Release atualizado: {r.json()["name"]}')
           print('Firestore rules implantadas com sucesso!')
