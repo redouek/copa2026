@@ -224,6 +224,26 @@ main { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 12px; }
 .btn-auth    { background: #4285f4; color: white; }
 .btn-dupes   { background: #e65100; color: white; }
 .dupes-rank-row { display: flex; gap: 6px; align-items: center; }
+.btn-trade {
+  background: #e65100; color: white; border: none; border-radius: 6px;
+  padding: 4px 8px; font-size: 13px; cursor: pointer; touch-action: manipulation;
+}
+.btn-trade:hover { background: #bf360c; }
+.trade-section { margin-bottom: 14px; }
+.trade-team { font-size: 13px; font-weight: 700; color: #555; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+.trade-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.trade-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px 9px; border-radius: 6px; border: 1.5px solid #ddd;
+  background: #f9f9f9; font-size: 13px; font-weight: 600; cursor: pointer;
+  user-select: none; transition: background .15s, border-color .15s;
+}
+.trade-chip input[type=checkbox] { display: none; }
+.trade-chip.i-need { border-color: #2e7d32; background: #f0fff0; color: #1b5e20; }
+.trade-chip:has(input:checked) { background: #2e7d32; color: white; border-color: #2e7d32; }
+.trade-count { font-size: 11px; opacity: .7; }
+.trade-hint { font-size: 13px; color: #666; margin-bottom: 12px; }
+.modal-whats-new .trade-hint { margin-bottom: 0; }
 
 .admin-table { width: 100%; border-collapse: collapse; }
 .admin-table th {
@@ -486,25 +506,40 @@ body.view-line .fwc-sub .stickers-wrap { grid-template-columns: repeat(11, minma
   .cs-wrap { order: 2; min-width: 0; flex: 1; }
   .view-toggle { display: none; }
 
-  /* Admin table → cards */
-  .admin-table, .admin-table tbody { display: block; width: 100%; }
-  .admin-table thead { display: none; }
-  .admin-table tr {
+  /* Admin usuários → cards */
+  .admin-users-table, .admin-users-table tbody { display: block; width: 100%; }
+  .admin-users-table thead { display: none; }
+  .admin-users-table tr {
     display: flex; flex-wrap: wrap; align-items: flex-start;
     padding: 10px 0; border-bottom: 1px solid #eee; gap: 2px;
   }
-  .admin-table tr:last-child { border-bottom: none; }
-  .admin-table td { padding: 0; border: none; text-align: left; }
-  .admin-table td:nth-child(1) { order: 1; flex: 1; min-width: 0; font-size: 13px; }
-  .admin-table td:nth-child(2) { order: 4; font-size: 11px; color: #aaa; width: auto; }
-  .admin-table td:nth-child(3) { order: 3; width: 100%; font-size: 12px; color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-left: 31px; }
-  .admin-table td:nth-child(4) { order: 5; font-size: 12px; color: #555; }
-  .admin-table td:nth-child(4)::before { content: ' · T: '; color: #aaa; }
-  .admin-table td:nth-child(5) { order: 6; font-size: 12px; color: #555; }
-  .admin-table td:nth-child(5)::before { content: ' F: '; color: #aaa; }
-  .admin-table td:nth-child(6) { order: 2; white-space: nowrap; padding-left: 8px; }
+  .admin-users-table tr:last-child { border-bottom: none; }
+  .admin-users-table td { padding: 0; border: none; text-align: left; }
+  .admin-users-table td:nth-child(1) { order: 1; flex: 1; min-width: 0; font-size: 13px; }
+  .admin-users-table td:nth-child(2) { order: 4; font-size: 11px; color: #aaa; }
+  .admin-users-table td:nth-child(3) { order: 3; width: 100%; font-size: 12px; color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-left: 31px; }
+  .admin-users-table td:nth-child(4) { order: 5; font-size: 12px; color: #555; }
+  .admin-users-table td:nth-child(4)::before { content: ' · T: '; color: #aaa; }
+  .admin-users-table td:nth-child(5) { order: 6; font-size: 12px; color: #555; }
+  .admin-users-table td:nth-child(5)::before { content: ' F: '; color: #aaa; }
+  .admin-users-table td:nth-child(6) { order: 2; white-space: nowrap; padding-left: 8px; }
   .admin-avatar { width: 22px; height: 22px; }
   .admin-nophoto { width: 22px; height: 22px; line-height: 22px; font-size: 13px; }
+
+  /* Ranking → cards legíveis */
+  .ranking-table, .ranking-table tbody { display: block; width: 100%; }
+  .ranking-table thead { display: none; }
+  .ranking-table tr {
+    display: flex; flex-wrap: wrap; align-items: center;
+    padding: 12px 0; border-bottom: 1px solid #f0f0f0; gap: 4px;
+  }
+  .ranking-table tr:last-child { border-bottom: none; }
+  .ranking-table td { padding: 0; border: none; }
+  .ranking-table td:nth-child(1) { order: 1; font-size: 13px; font-weight: 900; color: #999; min-width: 28px; }
+  .ranking-table td:nth-child(2) { order: 2; flex: 1; font-size: 16px; min-width: 0; }
+  .ranking-table td:nth-child(3) { order: 4; width: 100%; font-size: 13px; color: #666; padding-left: 28px; }
+  .ranking-table td:nth-child(4) { order: 3; font-size: 16px; font-weight: 900; color: #1a237e; white-space: nowrap; }
+  .ranking-table td:nth-child(5) { order: 3; white-space: nowrap; padding-left: 8px; }
 
   .teams-row,
   body.view-line .teams-row {
@@ -825,6 +860,23 @@ body.view-line .fwc-sub .stickers-wrap { grid-template-columns: repeat(11, minma
     </div>
     <div class="drawer-body">
       <div id="rankingList" style="font-size:16px"></div>
+    </div>
+  </div>
+</div>
+
+<div id="tradeModal" class="drawer-overlay" onclick="if(event.target===this)closeTradeModal()">
+  <div class="drawer-panel">
+    <div class="drawer-header">
+      <h2>🔁 Repetidas de <span id="tradeUserName"></span></h2>
+      <button class="drawer-close" onclick="closeTradeModal()" aria-label="Fechar">×</button>
+    </div>
+    <div class="drawer-body">
+      <p class="trade-hint">🟢 Marcadas = você precisa. Clique para selecionar/desmarcar.</p>
+      <div id="tradeList"></div>
+      <div class="modal-row" style="margin-top:16px;gap:8px">
+        <button class="btn btn-green" id="btnCopyTrade" onclick="copyTradeMessage()" style="flex:1;padding:10px">📋 Copiar mensagem</button>
+        <button class="btn" onclick="closeTradeModal()" style="padding:10px">Fechar</button>
+      </div>
     </div>
   </div>
 </div>
@@ -2042,11 +2094,13 @@ async function loadAdminUsers(force = false) {
   const snap = await db.collection('users').orderBy('createdAt', 'desc').get();
   const users = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   adminUsersCache = await Promise.all(users.map(async u => {
-    let haveCount = 0;
+    let haveCount = 0, userDupes = {};
     try {
       const albumDoc = await db.collection('albums').doc(u.id).get();
-      if (albumDoc.exists && Array.isArray(albumDoc.data().have)) {
-        haveCount = Math.max(0, Math.min(980, albumDoc.data().have.length));
+      if (albumDoc.exists) {
+        const d = albumDoc.data();
+        if (Array.isArray(d.have)) haveCount = Math.max(0, Math.min(980, d.have.length));
+        if (d.dupes && typeof d.dupes === 'object') userDupes = d.dupes;
       }
     } catch(e) {
       console.warn('Erro ao carregar álbum do usuário:', u.id, e);
@@ -2066,7 +2120,8 @@ async function loadAdminUsers(force = false) {
       createdAt: u.createdAt,
       createdAtMs: timestampMs(u.createdAt),
       haveCount,
-      missingCount: 980 - haveCount
+      missingCount: 980 - haveCount,
+      dupes: userDupes
     };
   }));
   return adminUsersCache;
@@ -2139,7 +2194,7 @@ function renderAdminTable() {
     </tr>`;
   });
 
-  listEl.innerHTML = `<table class="admin-table">
+  listEl.innerHTML = `<table class="admin-table admin-users-table">
     <thead><tr>
       <th class="sortable ${adminSort.key === 'fullName' ? 'sorted' : ''}" onclick="sortAdminUsers('fullName')">Nome completo${sortMark('fullName')}</th>
       <th class="sortable ${adminSort.key === 'createdAtMs' ? 'sorted' : ''}" onclick="sortAdminUsers('createdAtMs')">Data cadastro${sortMark('createdAtMs')}</th>
@@ -2185,20 +2240,95 @@ function renderRankingTable() {
       ? '<span class="complete-badge">🏆 COMPLETOU!</span>'
       : `<span>${u.haveCount} / ${u.missingCount}</span>`;
     const percent = Math.round((u.haveCount / 980) * 100);
+    const hasDupes = Object.values(u.dupes || {}).some(v => v > 0);
+    const tradeBtn = hasDupes ? `<button class="btn-trade" onclick="openTradeModal('${escapeHtml(u.id)}')" title="Ver repetidas">🔁</button>` : '';
     return `<tr>
       <td class="num" style="font-weight:900">${i + 1}º</td>
       <td>${avatar}${escapeHtml(u.rankingName)}</td>
       <td>${status}</td>
       <td class="num" style="font-weight:900">${percent}%</td>
+      <td>${tradeBtn}</td>
     </tr>`;
   }).join('');
-  listEl.innerHTML = `<table class="admin-table">
-    <thead><tr><th>Posição</th><th>Colecionador</th><th>Tenho / Faltam</th><th>%</th></tr></thead>
+  listEl.innerHTML = `<table class="admin-table ranking-table">
+    <thead><tr><th>Pos.</th><th>Colecionador</th><th>Tenho / Faltam</th><th>%</th><th></th></tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
 }
 
 function closeRankingPanel() { document.getElementById('rankingModal').classList.remove('open'); }
+
+let tradeUserId = null;
+function openTradeModal(userId) {
+  const u = adminUsersCache.find(x => x.id === userId);
+  if (!u) return;
+  tradeUserId = userId;
+  document.getElementById('tradeUserName').textContent = u.firstName || u.fullName.split(' ')[0];
+  const userDupes = u.dupes || {};
+  let html = '';
+  for (const team of TEAMS) {
+    const items = [];
+    for (let pos = 1; pos <= 20; pos++) {
+      const n = team.start + pos - 1;
+      const cnt = userDupes[String(n)] || 0;
+      if (cnt > 0) {
+        const iNeed = state[n] === true;
+        items.push({ n, label: team.code + pos, cnt, iNeed });
+      }
+    }
+    if (!items.length) continue;
+    const flag = team.iso2 ? flagImg(team.iso2, 16) : '';
+    html += `<div class="trade-section"><div class="trade-team">${flag}${escapeHtml(team.name)}</div><div class="trade-chips">`;
+    items.forEach(({ n, label, cnt, iNeed }) => {
+      html += `<label class="trade-chip${iNeed ? ' i-need' : ''}">
+        <input type="checkbox" class="trade-cb" value="${n}"${iNeed ? ' checked' : ''}>
+        ${label}${cnt > 1 ? `<span class="trade-count">×${cnt}</span>` : ''}
+      </label>`;
+    });
+    html += `</div></div>`;
+  }
+  // FWC stickers (n=1..9 e 970..980)
+  const fwcItems = [];
+  for (let n = 1; n <= 9; n++) {
+    const cnt = userDupes[String(n)] || 0;
+    if (cnt > 0) fwcItems.push({ n, label: numToLabel(n), cnt, iNeed: state[n] === true });
+  }
+  for (let n = 970; n <= 980; n++) {
+    const cnt = userDupes[String(n)] || 0;
+    if (cnt > 0) fwcItems.push({ n, label: numToLabel(n), cnt, iNeed: state[n] === true });
+  }
+  if (fwcItems.length) {
+    html += `<div class="trade-section"><div class="trade-team">⭐ Especiais FWC</div><div class="trade-chips">`;
+    fwcItems.forEach(({ n, label, cnt, iNeed }) => {
+      html += `<label class="trade-chip${iNeed ? ' i-need' : ''}">
+        <input type="checkbox" class="trade-cb" value="${n}"${iNeed ? ' checked' : ''}>
+        ${label}${cnt > 1 ? `<span class="trade-count">×${cnt}</span>` : ''}
+      </label>`;
+    });
+    html += `</div></div>`;
+  }
+  if (!html) html = '<p style="color:#888;padding:16px 0">Este usuário não tem repetidas cadastradas.</p>';
+  document.getElementById('tradeList').innerHTML = html;
+  document.getElementById('tradeModal').classList.add('open');
+}
+function closeTradeModal() {
+  document.getElementById('tradeModal').classList.remove('open');
+  tradeUserId = null;
+}
+function copyTradeMessage() {
+  const u = adminUsersCache.find(x => x.id === tradeUserId);
+  if (!u) return;
+  const checked = [...document.querySelectorAll('.trade-cb:checked')];
+  if (!checked.length) { alert('Selecione pelo menos uma figurinha.'); return; }
+  const codes = checked.map(cb => numToLabel(parseInt(cb.value))).join(', ');
+  const firstName = u.firstName || u.fullName.split(' ')[0];
+  const msg = `Oi ${firstName}, eu vi sua relação de repetidas no site do álbum da Copa 2026 e vi que você tem algumas que eu preciso e podemos trocar. Segue a lista:\n${codes}`;
+  const btn = document.getElementById('btnCopyTrade');
+  navigator.clipboard.writeText(msg).then(() => {
+    btn.textContent = '✅ Copiado!';
+    setTimeout(() => btn.textContent = '📋 Copiar mensagem', 2500);
+  }).catch(() => { prompt('Copie a mensagem:', msg); });
+}
 
 function editUserName(userId) {
   editingUserId = userId;
