@@ -26,38 +26,44 @@ jobs:
       - name: Deploy Firestore rules via REST API
         run: |
           TOKEN=$(gcloud auth print-access-token)
-          CONTENT=$(python3 -c "import json; print(json.dumps(open('firestore.rules').read()))")
+
+          # Lista releases existentes para encontrar o nome correto
+          echo "=== Releases existentes ==="
+          curl -s \
+            -H "Authorization: Bearer $TOKEN" \
+            "https://firebaserules.googleapis.com/v1/projects/album-copa-26/releases" \
+            | python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          for r in data.get('releases', []):
+              print(r.get('name','?'), '->', r.get('rulesetName','?'))
+          "
 
           # Cria novo ruleset
+          CONTENT=$(python3 -c "import json; print(json.dumps(open('firestore.rules').read()))")
           curl -sf -X POST \
             -H "Authorization: Bearer $TOKEN" \
             -H "Content-Type: application/json" \
             -d "{\"source\":{\"files\":[{\"name\":\"firestore.rules\",\"content\":$CONTENT}]}}" \
             "https://firebaserules.googleapis.com/v1/projects/album-copa-26/rulesets" \
             > /tmp/ruleset.json
-          cat /tmp/ruleset.json
 
-          # Extrai o nome e monta o body via Python (evita problemas de quoting)
           python3 << 'PYEOF'
           import json
           with open('/tmp/ruleset.json') as f:
               ruleset = json.load(f)
           name = ruleset['name']
-          print(f"Ruleset: {name}")
+          print(f"Ruleset criado: {name}")
           with open('/tmp/patch_body.json', 'w') as f:
               json.dump({'rulesetName': name}, f)
           PYEOF
 
-          echo "Body que será enviado:"
-          cat /tmp/patch_body.json
-
-          # Vincula ao release cloud.firestore
+          # Tenta PATCH no release cloud.firestore
           RESP=$(curl -s -o /tmp/patch_resp.json -w "%{http_code}" -X PATCH \
             -H "Authorization: Bearer $TOKEN" \
             -H "Content-Type: application/json" \
             --data-binary @/tmp/patch_body.json \
             "https://firebaserules.googleapis.com/v1/projects/album-copa-26/releases/cloud.firestore")
-
           echo "PATCH HTTP $RESP:"
           cat /tmp/patch_resp.json
 
