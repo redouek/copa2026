@@ -4,14 +4,21 @@
     "ignore": [
       "firebase.json",
       "firestore.rules",
+      "storage.rules",
       ".firebaserc",
       ".gitignore",
+      ".git/**",
       ".github/**",
       ".claude/**",
+      "*.docx",
+      "~$*",
       "**/.*"
     ]
   },
   "firestore": {
     "rules": "firestore.rules"
+  },
+  "storage": {
+    "rules": "storage.rules"
   }
 }
