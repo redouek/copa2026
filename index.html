@@ -981,7 +981,7 @@ body.view-line .fwc-sub .stickers-wrap { grid-template-columns: repeat(11, minma
     </div>
     <div class="dupes-rank-row">
       <button class="btn btn-dupes" id="btnDupes" onclick="showDupesPanel()">🔁 Repetidas (<span id="dupesTotal">0</span>)</button>
-      <button class="btn btn-ranking" id="btnRanking" onclick="showRankingPanel()">🏆 Ranking</button>
+      <button class="btn btn-ranking" id="btnRanking" style="display:none" onclick="showRankingPanel()">🏆 Ranking</button>
     </div>
     <div class="view-toggle" id="viewToggle">
       <button class="btn" id="btnViewLine" onclick="setViewMode('line')" title="Visualizar em linha" aria-label="Visualizar em linha">☰</button>
@@ -1970,9 +1970,10 @@ async function onAuthChanged(user) {
     await loadFromFirestore(user.uid);
     refreshAll();
     setSyncBadge('ok', '☁️ sincronizado');
-    document.getElementById('btnLogin').style.display  = 'none';
+    document.getElementById('btnLogin').style.display   = 'none';
     document.getElementById('userMenuWrap').style.display = '';
-    document.getElementById('menuAdmin').style.display = isAdminUser(user) ? '' : 'none';
+    document.getElementById('btnRanking').style.display  = '';
+    document.getElementById('menuAdmin').style.display   = isAdminUser(user) ? '' : 'none';
     const chip = document.getElementById('userChip');
     const adminTag = isAdminUser(user) ? `<span class="chip-admin-tag">ADMIN</span>` : '';
     const name = user.displayName || user.email;
@@ -1982,8 +1983,9 @@ async function onAuthChanged(user) {
     closeModal();
   } else {
     setSyncBadge('offline', 'local');
-    document.getElementById('btnLogin').style.display  = '';
+    document.getElementById('btnLogin').style.display   = '';
     document.getElementById('userMenuWrap').style.display = 'none';
+    document.getElementById('btnRanking').style.display  = 'none';
     closeUserMenu();
     viewMode = storageGet('copa2026_viewMode') || 'line';
     viewTutorialSeen = storageGet('copa2026_viewTipSeen') === '1';

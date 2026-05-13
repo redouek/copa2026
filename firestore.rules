@@ -2,23 +2,29 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Cada usuário acessa apenas seu próprio álbum
+    // Álbuns: qualquer usuário logado pode ler (ranking e troca de repetidas)
+    // Apenas o dono pode escrever; admin pode deletar
     match /albums/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read:   if request.auth != null;
+      allow write:  if request.auth != null && request.auth.uid == userId;
+      allow delete: if request.auth != null &&
+        request.auth.token.email == 'douekweb@gmail.com';
     }
 
-    // Usuários escrevem seu próprio doc; admin lê todos
+    // Perfis: qualquer usuário logado pode ler (para ver o ranking)
+    // Apenas o dono pode criar/editar o próprio; admin pode atualizar e deletar qualquer um
     match /users/{userId} {
-      allow write: if request.auth != null && request.auth.uid == userId;
-      allow read:  if request.auth != null &&
-        (request.auth.uid == userId ||
-         request.auth.token.email == 'douek.renato@gmail.com');
+      allow read:   if request.auth != null;
+      allow write:  if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null &&
+        request.auth.token.email == 'douekweb@gmail.com';
+      allow delete: if request.auth != null &&
+        request.auth.token.email == 'douekweb@gmail.com';
     }
 
-    // Admin pode listar toda a coleção users
+    // Listagem da coleção users: qualquer usuário logado (para montar o ranking)
     match /users/{document=**} {
-      allow list: if request.auth != null &&
-        request.auth.token.email == 'douek.renato@gmail.com';
+      allow list: if request.auth != null;
     }
   }
 }
