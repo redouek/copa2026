@@ -7,9 +7,14 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Segoe UI', Arial, sans-serif; background: #2a2e2a; color: #222; font-size: 14px; }
+html, body { height: 100%; }
+body {
+  font-family: 'Segoe UI', Arial, sans-serif; background: #2a2e2a; color: #222; font-size: 14px;
+  display: flex; flex-direction: column; overflow: hidden;
+}
 
 /* ── Header ── */
 header {
@@ -19,13 +24,22 @@ header {
   -webkit-print-color-adjust: exact; print-color-adjust: exact;
 }
 header h1 { font-size: 18px; font-weight: 700; }
-#globalStats { margin-left: auto; text-align: right; font-size: 13px; line-height: 1.5; }
+#globalStats {
+  margin-left: auto; display: flex; align-items: center; gap: 10px;
+  text-align: right; font-size: 13px; line-height: 1.5;
+}
+.album-percent {
+  font-size: 30px; line-height: 1; font-weight: 900; letter-spacing: 0;
+  padding-right: 10px; border-right: 1px solid rgba(255,255,255,.35);
+}
+.album-counts { white-space: nowrap; }
 
 /* ── Toolbar ── */
 .toolbar {
   background: white; padding: 8px 14px; border-bottom: 1px solid #ddd;
   display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
 }
+.action-buttons { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .btn {
   padding: 6px 14px; border: none; border-radius: 5px;
   cursor: pointer; font-size: 13px; font-weight: 600; transition: opacity 0.15s;
@@ -36,11 +50,10 @@ header h1 { font-size: 18px; font-weight: 700; }
 .btn-orange { background: #c05000; color: white; }
 .btn-red    { background: #a01010; color: white; }
 .btn-gray   { background: #555; color: white; }
-.toolbar-hint { font-size: 11px; color: #888; margin-left: 6px; }
 
 /* ── Main layout ── */
-main { padding: 10px 12px; }
-.groups-grid { display: flex; flex-direction: column; gap: 10px; }
+main { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 12px; }
+.groups-grid { display: flex; flex-direction: column; gap: 13px; }
 
 /* ── Group block ── */
 .group-block {
@@ -48,43 +61,44 @@ main { padding: 10px 12px; }
   box-shadow: 0 1px 4px rgba(0,0,0,.12); overflow: hidden;
 }
 .group-header {
-  padding: 6px 12px; font-weight: 700; font-size: 14px; color: white;
+  padding: 8px 15px; font-weight: 700; font-size: 18px; color: white;
   display: flex; align-items: center; gap: 8px;
   -webkit-print-color-adjust: exact; print-color-adjust: exact;
 }
-.group-header .g-letter { font-size: 20px; font-weight: 900; opacity: .75; }
-.group-header .g-stats  { margin-left: auto; font-size: 11px; font-weight: 400; }
+.group-header .g-letter { font-size: 25px; font-weight: 900; opacity: .75; }
+.group-header .g-stats  { margin-left: auto; font-size: 14px; font-weight: 400; }
 
 /* ── Teams row ── */
 .teams-row {
   display: grid; grid-template-columns: repeat(4, 1fr);
   border-top: 1px solid #eee;
 }
-.team-block { border-right: 1px solid #eee; padding: 8px; }
+.team-block { border-right: 1px solid #eee; padding: 10px; }
 .team-block:last-child { border-right: none; }
 .team-name-row {
-  font-weight: 700; font-size: 12px;
-  display: flex; align-items: center; gap: 4px;
-  white-space: nowrap; overflow: hidden; margin-bottom: 2px;
+  font-weight: 700; font-size: 15px;
+  display: flex; align-items: center; gap: 5px;
+  white-space: nowrap; overflow: hidden; margin-bottom: 3px;
 }
 .team-meta-row {
   display: flex; justify-content: space-between; align-items: baseline;
-  margin-bottom: 4px;
+  margin-bottom: 5px;
 }
 .team-code {
-  font-family: monospace; font-size: 10px; background: #f0f0f0;
-  padding: 1px 4px; border-radius: 3px; color: #555;
+  font-family: monospace; font-size: 13px; background: #f0f0f0;
+  padding: 2px 5px; border-radius: 3px; color: #555;
 }
-.team-meta { font-size: 10px; color: #999; }
+.team-meta { font-size: 13px; color: #999; }
 
 /* ── Sticker grid ── */
-.stickers-wrap { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; }
+.stickers-wrap { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
 
 .chip {
-  text-align: center; padding: 3px 1px; font-size: 9px; line-height: 1.2;
+  position: relative;
+  text-align: center; padding: 5px 4px; font-size: 12px; line-height: 1.2;
   border-radius: 3px; border: 1px solid #ddd;
   cursor: pointer; user-select: none; transition: background .1s;
-  white-space: nowrap; overflow: hidden;
+  white-space: nowrap; overflow: visible; min-width: 46px;
 }
 .chip.missing {
   background: #fff0f0; border-color: #f08080; color: #c00;
@@ -94,12 +108,45 @@ main { padding: 10px 12px; }
   background: #f0fff0; border-color: #90c090; color: #2a6e2a;
   text-decoration: line-through; opacity: .6;
 }
+.chip-dupe-badge {
+  position: absolute; top: -6px; right: -6px;
+  background: #e65100; color: white; font-size: 8px; font-weight: 800;
+  border-radius: 9px; padding: 0 4px; min-width: 15px; height: 15px;
+  line-height: 15px; text-align: center; pointer-events: none;
+  border: 1.5px solid white; box-shadow: 0 1px 3px rgba(0,0,0,.25);
+}
+
+/* ── Chip Stepper (floating popup) ── */
+#chipStepper {
+  display: none; position: fixed; z-index: 600;
+  background: white; border: 1px solid #ddd; border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(0,0,0,.18);
+  padding: 8px 10px; align-items: center; gap: 8px;
+}
+.step-btn {
+  width: 32px; height: 32px; border: 1px solid #ddd; border-radius: 6px;
+  background: #f5f5f5; cursor: pointer; font-size: 20px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; padding: 0; color: #333;
+}
+.step-btn:hover { background: #e8e8e8; }
+.step-btn.minus:hover { background: #fff0f0; color: #c00; border-color: #f08080; }
+.step-count {
+  min-width: 32px; text-align: center; font-size: 18px; font-weight: 800; color: #222;
+}
+.step-zero {
+  padding: 5px 9px; border: 1px solid #ddd; border-radius: 6px;
+  background: #f5f5f5; cursor: pointer; font-size: 11px; font-weight: 600; color: #777;
+}
+.step-zero:hover { background: #e8e8e8; color: #333; }
+.step-label {
+  font-size: 10px; color: #aaa; padding-right: 2px; white-space: nowrap;
+}
 
 /* ── FWC special ── */
 .fwc-section { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid #eee; }
-.fwc-sub { padding: 8px; border-right: 1px solid #eee; }
+.fwc-sub { padding: 10px; border-right: 1px solid #eee; }
 .fwc-sub:last-child { border-right: none; }
-.fwc-sub-title { font-size: 11px; color: #777; margin-bottom: 5px; font-weight: 600; }
+.fwc-sub-title { font-size: 14px; color: #777; margin-bottom: 6px; font-weight: 600; }
 
 /* ── Group colors ── */
 .gc-A { background: #b71c1c; }
@@ -119,13 +166,16 @@ main { padding: 10px 12px; }
 /* ── Filter buttons ── */
 .filter-bar { display: flex; gap: 6px; align-items: center; font-size: 12px; padding: 0 2px; }
 .btn-filter {
-  padding: 3px 10px; border-radius: 12px; border: 2px solid transparent;
-  cursor: pointer; font-size: 12px; font-weight: 600; opacity: .45;
-  transition: opacity .15s, border-color .15s;
+  padding: 6px 12px; border-radius: 999px; border: 1px solid #d0d7de;
+  cursor: pointer; font-size: 12px; font-weight: 700; opacity: .72;
+  transition: opacity .15s, border-color .15s, background .15s;
+  background: #f6f8fa; color: #4b5563;
 }
-.btn-filter.active { opacity: 1; border-color: rgba(255,255,255,.6); }
-.btn-filter-missing { background: #f08080; color: #fff; }
-.btn-filter-have    { background: #6abf6a; color: #fff; }
+.btn-filter.active {
+  opacity: 1; border-color: transparent; color: #fff;
+}
+.btn-filter-missing.active { background: #c62828; }
+.btn-filter-have.active { background: #2e7d32; }
 
 /* ══════════════════════════════════════════
    PRINT STYLES
@@ -134,25 +184,34 @@ main { padding: 10px 12px; }
 .auth-area { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 .user-chip {
   display: flex; align-items: center; gap: 6px;
-  font-size: 12px; color: #555;
+  font-size: 15px; color: #555;
 }
-.user-chip img { width: 22px; height: 22px; border-radius: 50%; }
+.user-chip img { width: 28px; height: 28px; border-radius: 50%; }
 .btn-auth    { background: #4285f4; color: white; }
-.btn-admin   { background: #7c4dff; color: white; font-size: 12px; }
+.btn-admin   { background: #ffc400; color: rgb(0, 0, 0); font-size: 12px; }
 .btn-signout { background: #eee; color: #333; font-size: 12px; padding: 4px 10px; }
+.btn-dupes   { background: #e65100; color: white; }
 
 .admin-table { width: 100%; border-collapse: collapse; }
-.admin-table th { text-align: left; font-size: 11px; color: #888; padding: 4px 8px; border-bottom: 1px solid #eee; }
-.admin-table td { padding: 8px 8px; border-bottom: 1px solid #f5f5f5; vertical-align: middle; }
-.admin-table tr:last-child td { border-bottom: none; }
-.admin-avatar { width: 28px; height: 28px; border-radius: 50%; vertical-align: middle; margin-right: 6px; }
-.admin-nophoto { display:inline-block; width:28px; height:28px; border-radius:50%; background:#ddd; text-align:center; line-height:28px; font-size:14px; margin-right:6px; vertical-align:middle; }
-.sync-badge {
-  font-size: 10px; padding: 2px 7px; border-radius: 10px;
-  background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7;
+.admin-table th {
+  text-align: left; font-size: 14px; color: #888; padding: 5px 10px;
+  border-bottom: 1px solid #eee; white-space: nowrap;
 }
-.sync-badge.syncing { background: #fff8e1; color: #f57f17; border-color: #ffe082; }
-.sync-badge.offline { background: #fce4ec; color: #b71c1c; border-color: #ef9a9a; }
+.admin-table th.sortable { cursor: pointer; user-select: none; }
+.admin-table th.sortable:hover { color: #1255a0; }
+.admin-table th.sorted { color: #1255a0; }
+.admin-table td { padding: 10px 10px; border-bottom: 1px solid #f5f5f5; vertical-align: middle; }
+.admin-table tr:last-child td { border-bottom: none; }
+.admin-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.admin-avatar { width: 35px; height: 35px; border-radius: 50%; vertical-align: middle; margin-right: 8px; }
+.admin-nophoto { display:inline-block; width:35px; height:35px; border-radius:50%; background:#ddd; text-align:center; line-height:35px; font-size:18px; margin-right:8px; vertical-align:middle; }
+.sync-badge {
+  width: 9px; height: 9px; border-radius: 50%; padding: 0;
+  background: #2e7d32; border: 1px solid rgba(0,0,0,.12);
+  display: inline-block; flex: 0 0 auto;
+}
+.sync-badge.syncing { background: #f9a825; }
+.sync-badge.offline { background: #b0b7c3; }
 
 /* ── Modal ── */
 .modal-overlay {
@@ -160,6 +219,7 @@ main { padding: 10px 12px; }
   background: rgba(0,0,0,.55); z-index: 1000;
   align-items: center; justify-content: center;
 }
+#confirmDeleteModal { z-index: 1200; }
 .modal-overlay.open { display: flex; }
 .modal-box {
   background: white; border-radius: 10px; padding: 28px 28px 22px;
@@ -196,11 +256,66 @@ main { padding: 10px 12px; }
 }
 .modal-tab.active { color: #4285f4; border-bottom: 2px solid #4285f4; margin-bottom: -2px; }
 
+/* ── Drawers ── */
+.drawer-overlay {
+  display: none; position: fixed; inset: 0; z-index: 1100;
+  background: rgba(0,0,0,.38); justify-content: flex-end;
+}
+.drawer-overlay.open { display: flex; }
+.drawer-panel {
+  width: min(860px, 96vw); height: 100%; background: #fff;
+  box-shadow: -8px 0 28px rgba(0,0,0,.28);
+  display: flex; flex-direction: column;
+}
+.drawer-header {
+  padding: 18px 22px; border-bottom: 1px solid #e8e8e8;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.drawer-header h2 { font-size: 20px; color: #222; }
+.drawer-close {
+  border: none; background: #eee; color: #333; border-radius: 6px;
+  width: 34px; height: 34px; cursor: pointer; font-size: 20px; line-height: 1;
+}
+.drawer-body { flex: 1; min-height: 0; overflow-y: auto; padding: 18px 22px 22px; }
+.drawer-summary {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px;
+}
+.summary-card {
+  border: 1px solid #e5e5e5; border-radius: 8px; padding: 12px;
+  background: #fafafa;
+}
+.summary-card span { display: block; color: #777; font-size: 12px; font-weight: 700; text-transform: uppercase; }
+.summary-card strong { display: block; color: #222; font-size: 28px; margin-top: 4px; }
+.btn-icon {
+  width: 34px; height: 34px; border: none; border-radius: 6px;
+  cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+  font-size: 16px;
+}
+.btn-trash { background: #ffe8e8; color: #b71c1c; }
+.btn-edit { background: #e8f1ff; color: #1255a0; }
+.btn-ranking { background: #263238; color: #fff; }
+.admin-name-edit { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; min-width: 260px; }
+.admin-name-edit input {
+  min-width: 0; padding: 7px 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px;
+}
+.ranking-avatar {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; border-radius: 50%; background: #e9eef2;
+  font-size: 20px; margin-right: 8px; vertical-align: middle;
+}
+.ranking-medal { background: transparent; font-size: 28px; }
+.complete-badge {
+  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+  background: #fff8d7; color: #8a5b00; border: 1px solid #f2ca52;
+  border-radius: 999px; padding: 5px 10px; font-size: 12px; font-weight: 900;
+}
+
 /* ── Nav bar ── */
 .nav-bar {
   background: #fff; padding: 7px 14px; border-bottom: 1px solid #e0e0e0;
   display: flex; align-items: center; gap: 10px;
 }
+.nav-actions { display: flex; gap: 6px; align-items: center; margin-left: auto; }
 .nav-label { font-size: 13px; color: #555; font-weight: 600; white-space: nowrap; }
 
 /* custom dropdown */
@@ -232,6 +347,148 @@ main { padding: 10px 12px; }
 .cs-item:hover { background: #f0f4ff; }
 .cs-item img { border: 1px solid rgba(0,0,0,.1); border-radius: 2px; flex-shrink: 0; }
 .cs-item .cs-meta { font-size: 11px; color: #aaa; margin-left: auto; white-space: nowrap; }
+.view-toggle { display: flex; gap: 4px; position: relative; }
+.view-toggle .btn {
+  background: #eee; color: #333; padding: 0; border: 1px solid #ccc;
+  width: 32px; height: 32px; font-size: 18px; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.view-toggle .btn.active { background: #005f1f; color: #fff; border-color: #005f1f; }
+.view-tip {
+  position: absolute; top: calc(100% + 8px); right: 0; width: 280px;
+  background: #222; color: #fff; padding: 10px 12px; border-radius: 8px;
+  font-size: 12px; line-height: 1.35; box-shadow: 0 8px 24px rgba(0,0,0,.24);
+  z-index: 650;
+}
+.view-tip::before {
+  content: ''; position: absolute; top: -6px; right: 24px;
+  border-left: 6px solid transparent; border-right: 6px solid transparent;
+  border-bottom: 6px solid #222;
+}
+.view-tip button {
+  margin-top: 8px; border: none; border-radius: 5px; padding: 4px 8px;
+  background: #ffc400; color: #111; font-weight: 700; cursor: pointer;
+}
+
+body.view-line .teams-row { display: flex; flex-direction: column; border-top: 1px solid #eee; }
+body.view-line .team-block {
+  display: grid; grid-template-columns: 30px 142px 44px 82px minmax(0, 1fr);
+  align-items: center; gap: 5px; border-right: none; border-bottom: 1px solid #eee;
+}
+body.view-line .team-block:last-child { border-bottom: none; }
+body.view-line .team-name-row { display: contents; }
+body.view-line .team-flag { grid-column: 1; }
+body.view-line .team-name { grid-column: 2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+body.view-line .team-meta-row { display: contents; margin-bottom: 0; }
+body.view-line .team-code { grid-column: 3; text-align: center; }
+body.view-line .team-meta { grid-column: 4; font-weight: 700; }
+body.view-line .team-block .stickers-wrap {
+  grid-column: 5; display: grid; grid-auto-flow: column;
+  grid-auto-columns: 58px; grid-template-columns: none;
+  gap: 5px; overflow-x: auto; overflow-y: hidden; padding-bottom: 3px;
+}
+body.view-line .chip { min-width: 56px; padding-left: 6px; padding-right: 6px; }
+body.view-line .fwc-section { display: flex; flex-direction: column; }
+body.view-line .fwc-sub {
+  display: grid; grid-template-columns: 210px minmax(360px, 1fr);
+  align-items: center; gap: 10px; border-right: none; border-bottom: 1px solid #eee;
+}
+body.view-line .fwc-sub:last-child { border-bottom: none; }
+body.view-line .fwc-sub-title { margin-bottom: 0; }
+body.view-line .fwc-sub .stickers-wrap { grid-template-columns: repeat(11, minmax(34px, 1fr)); }
+
+@media (max-width: 1024px) {
+  .chip { font-size: 13px; padding: 7px 6px; min-width: 64px; min-height: 32px; }
+  body.view-line .team-block {
+    grid-template-columns: 30px 136px 44px 78px minmax(520px, 1fr);
+    overflow-x: auto;
+  }
+  body.view-line .team-block .stickers-wrap {
+    grid-template-columns: none; grid-auto-columns: 70px; gap: 6px;
+  }
+  body.view-line .fwc-sub { grid-template-columns: 180px minmax(520px, 1fr); overflow-x: auto; }
+  body.view-line .fwc-sub .stickers-wrap { grid-template-columns: repeat(11, minmax(46px, 1fr)); }
+}
+
+@media (max-width: 640px) {
+  header { gap: 8px; padding: 9px 12px; }
+  header > div:first-child { min-width: 0; }
+  header h1 { font-size: 17px; white-space: nowrap; }
+  #globalStats {
+    margin-left: auto; padding: 4px 8px; border-radius: 6px; gap: 7px;
+    background: rgba(255,255,255,.12); font-size: 12px; line-height: 1.35;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .album-percent { font-size: 24px; padding-right: 7px; }
+
+  .toolbar { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
+  .action-buttons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .action-buttons .btn { width: 100%; padding-left: 6px; padding-right: 6px; }
+  .auth-area { margin-left: 0; justify-content: flex-start; flex-wrap: wrap; }
+
+  .nav-bar { flex-wrap: wrap; align-items: stretch; gap: 8px; }
+  .nav-actions {
+    order: 1; width: 100%; margin-left: 0; display: flex; flex-direction: column; align-items: stretch;
+  }
+  .nav-actions .filter-bar {
+    width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px; padding: 0;
+  }
+  .nav-actions .btn-filter { width: 100%; padding: 8px 10px; }
+  #btnRanking {
+    width: 100%;
+    padding: 9px 12px; font-size: 13px;
+  }
+  .nav-label { order: 2; width: 100%; }
+  .cs-wrap { order: 3; min-width: 0; flex: 1 1 calc(100% - 70px); }
+  .view-toggle { display: none; }
+
+  .teams-row,
+  body.view-line .teams-row {
+    display: flex; flex-direction: column;
+  }
+  .team-block,
+  body.view-line .team-block {
+    display: block; border-right: none; border-bottom: 1px solid #eee;
+    padding: 10px;
+  }
+  .team-block:last-child,
+  body.view-line .team-block:last-child { border-bottom: none; }
+  .team-name-row,
+  body.view-line .team-name-row {
+    display: flex; font-size: 15px; gap: 6px; margin-bottom: 4px;
+  }
+  body.view-line .team-flag,
+  body.view-line .team-name { grid-column: auto; }
+  body.view-line .team-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .team-meta-row,
+  body.view-line .team-meta-row {
+    display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;
+  }
+  body.view-line .team-code,
+  body.view-line .team-meta { grid-column: auto; }
+  .stickers-wrap,
+  body.view-line .team-block .stickers-wrap {
+    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-auto-flow: row; grid-auto-columns: auto;
+    gap: 6px; overflow: visible; padding-bottom: 0;
+  }
+  .chip,
+  body.view-line .chip {
+    font-size: 13px; padding: 7px 3px; min-width: 0; width: 100%; min-height: 34px;
+  }
+  .fwc-section,
+  body.view-line .fwc-section {
+    display: flex; flex-direction: column;
+  }
+  .fwc-sub,
+  body.view-line .fwc-sub {
+    display: block; padding: 10px; border-right: none; border-bottom: 1px solid #eee;
+  }
+  .fwc-sub-title,
+  body.view-line .fwc-sub-title { margin-bottom: 6px; }
+  body.view-line .fwc-sub .stickers-wrap { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
 
 /* ── Flash animation ── */
 @keyframes flash-team {
@@ -245,41 +502,158 @@ main { padding: 10px 12px; }
 #printHeader { display: none; }
 
 @media print {
+  @page { size: A4 portrait; margin: 6mm; }
   .nav-bar { display: none; }
-  body { background: white; font-size: 12px; }
+  html, body { height: auto; }
+  body { background: white; color: #111; font-size: 10px; display: block; overflow: visible; }
   header { display: none; }
   .toolbar, .filter-bar { display: none !important; }
   #printHeader {
     display: flex; justify-content: space-between; align-items: baseline;
-    padding: 5px 8px; margin-bottom: 6px;
-    border-bottom: 2px solid #333; font-size: 12px;
+    padding: 0 0 4px; margin-bottom: 5px;
+    border-bottom: 1px solid #333; font-size: 10px;
   }
-  #printHeader strong { font-size: 13px; }
-  main { padding: 3px; }
-  .groups-grid { gap: 5px; }
+  #printHeader strong { font-size: 12px; }
+  main { padding: 0; overflow: visible; }
+  .groups-grid { display: block; gap: 0; }
 
-  .group-block { box-shadow: none; border: 1px solid #bbb; page-break-inside: avoid; }
-  .group-header { padding: 4px 8px; font-size: 12px; }
-  .group-header .g-letter { font-size: 15px; }
+  .group-block {
+    box-shadow: none; border: 1px solid #bbb; border-radius: 0;
+    display: inline-block !important; width: 100%; margin: 0 0 4px 0;
+    vertical-align: top;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    break-inside: avoid-page !important;
+    page-break-before: auto;
+    page-break-after: auto;
+  }
+  .group-header {
+    padding: 2px 4px; font-size: 8px; line-height: 1.1;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+    break-after: avoid-page !important;
+  }
+  .group-header .g-letter { font-size: 10px; }
+  .group-header .g-stats { font-size: 7px; }
 
   /* hide stickers already found */
   .chip.have { display: none; }
+  .chip-dupe-badge { display: none; }
+  #chipStepper { display: none !important; }
 
   /* hide teams where nothing is missing */
   .team-block.print-hide { display: none; }
 
   /* hide entire group block if all complete */
-  .group-block.print-hide { display: none; }
+  .group-block.print-hide { display: none !important; }
 
-  .teams-row { grid-template-columns: repeat(4, 1fr); }
-  .team-block { padding: 4px 5px; }
-  .team-name-row { font-size: 11px; }
-  .team-meta-row { margin-bottom: 3px; }
-  .stickers-wrap { grid-template-columns: repeat(4, 1fr); gap: 2px; }
-  .chip { font-size: 10px; padding: 3px 1px; font-weight: 700; overflow: visible; }
+  .teams-row,
+  body.view-line .teams-row {
+    display: flex; flex-direction: column; border-top: 1px solid #ddd;
+    page-break-before: avoid !important;
+    break-before: avoid !important;
+    break-before: avoid-page !important;
+  }
+  .team-block,
+  body.view-line .team-block {
+    display: grid; grid-template-columns: 14px 76px 24px 42px minmax(0, 1fr);
+    align-items: center; gap: 2px; padding: 2px 3px;
+    border-right: none; border-bottom: 1px solid #ddd;
+    page-break-inside: avoid; break-inside: avoid;
+  }
+  .team-block:last-child,
+  body.view-line .team-block:last-child { border-bottom: none; }
+  .team-name-row,
+  body.view-line .team-name-row { display: contents; }
+  .team-flag,
+  body.view-line .team-flag {
+    display: inline-flex !important; grid-column: 1;
+    align-items: center; justify-content: center; width: 12px; height: 9px; overflow: hidden;
+  }
+  .team-flag img,
+  body.view-line .team-flag img {
+    width: 12px !important; height: 9px !important; object-fit: cover; display: block;
+  }
+  .team-name,
+  body.view-line .team-name {
+    grid-column: 2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-size: 7px; font-weight: 700;
+  }
+  .team-meta-row,
+  body.view-line .team-meta-row { display: contents; margin-bottom: 0; }
+  .team-code,
+  body.view-line .team-code {
+    grid-column: 3; text-align: center; font-size: 6px; padding: 0 1px;
+    border-radius: 2px;
+  }
+  .team-meta,
+  body.view-line .team-meta {
+    grid-column: 4; font-size: 6px; font-weight: 700; color: #c00 !important;
+  }
+  .stickers-wrap,
+  body.view-line .team-block .stickers-wrap {
+    grid-column: 5; display: grid; grid-template-columns: repeat(10, minmax(0, 1fr));
+    grid-auto-flow: row; grid-auto-columns: auto; gap: 1.5px; overflow: hidden; padding: 0;
+  }
+  .chip,
+  body.view-line .chip {
+    min-width: 0; width: auto; min-height: 0;
+    font-size: 7px; line-height: 1.05; padding: 1.5px 0; border-width: .5px;
+    font-weight: 700; border-radius: 2px; overflow: hidden; text-overflow: clip;
+    white-space: nowrap;
+  }
 
-  .fwc-section { grid-template-columns: 1fr 1fr; }
-  .fwc-sub { padding: 5px; }
+  .fwc-section,
+  body.view-line .fwc-section {
+    display: flex; flex-direction: column; border-top: 1px solid #ddd;
+    page-break-before: avoid !important;
+    break-before: avoid !important;
+    break-before: avoid-page !important;
+  }
+  .fwc-sub,
+  body.view-line .fwc-sub {
+    display: grid !important; grid-template-columns: 164px minmax(0, 1fr) !important;
+    align-items: center; gap: 2px; padding: 2px 3px;
+    border-right: none; border-bottom: 1px solid #ddd;
+    page-break-inside: avoid; break-inside: avoid;
+  }
+  .fwc-sub:last-child,
+  body.view-line .fwc-sub:last-child { border-bottom: none; }
+  .fwc-sub-title,
+  body.view-line .fwc-sub-title {
+    margin-bottom: 0 !important; font-size: 7px; font-weight: 700;
+    line-height: 1.15; white-space: normal;
+  }
+  .fwc-title-main,
+  .fwc-title-range { display: block !important; }
+  .fwc-sub .stickers-wrap,
+  body.view-line .fwc-sub .stickers-wrap {
+    grid-column: 2 !important;
+    grid-template-columns: repeat(10, minmax(0, 1fr)) !important;
+    justify-items: stretch;
+  }
+}
+
+@media print and (max-width: 640px) {
+  @page { margin: 4mm; }
+  body { font-size: 8px; }
+  #printHeader { font-size: 8px; margin-bottom: 3px; }
+  #printHeader strong { font-size: 10px; }
+  .groups-grid { gap: 0; }
+  .group-block {
+    display: inline-block !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    break-inside: avoid-page !important;
+  }
+  .team-block,
+  body.view-line .team-block {
+    grid-template-columns: 14px 68px 24px 42px minmax(0, 1fr);
+  }
+  .fwc-sub,
+  body.view-line .fwc-sub {
+    grid-template-columns: 156px minmax(0, 1fr) !important;
+  }
 }
 </style>
 </head>
@@ -287,12 +661,7 @@ main { padding: 10px 12px; }
 
 <header>
   <div>
-    <h1>⚽ Copa do Mundo 2026 — Álbum de Figurinhas</h1>
-    <div class="filter-bar">
-      <button class="btn-filter btn-filter-missing active" id="btnMissing" onclick="toggleFilter('missing')">🔴 Faltando</button>
-      <button class="btn-filter btn-filter-have active"    id="btnHave"    onclick="toggleFilter('have')">🟢 Tenho</button>
-      <span style="color:rgba(255,255,255,.5);font-size:11px">· clique para filtrar</span>
-    </div>
+    <h1>Álbum Copa 26</h1>
   </div>
   <div id="globalStats">—</div>
 </header>
@@ -309,6 +678,10 @@ main { padding: 10px 12px; }
       <button class="modal-tab active" id="tabEntrar" onclick="switchTab('entrar')">Entrar</button>
       <button class="modal-tab" id="tabCriar" onclick="switchTab('criar')">Criar conta</button>
     </div>
+    <div id="nameFields" style="display:none">
+      <input class="modal-input" id="authFirstName" type="text" placeholder="Nome">
+      <input class="modal-input" id="authLastName"  type="text" placeholder="Sobrenome">
+    </div>
     <input class="modal-input" id="authEmail" type="email" placeholder="E-mail">
     <input class="modal-input" id="authPass"  type="password" placeholder="Senha">
     <div class="modal-error" id="authError"></div>
@@ -320,32 +693,103 @@ main { padding: 10px 12px; }
 </div>
 
 <div class="toolbar">
-  <button class="btn btn-green"  onclick="printMissing()">🖨️ Imprimir Faltantes</button>
-  <button class="btn btn-blue"   onclick="importList()">📋 Importar Lista</button>
-  <button class="btn btn-orange" onclick="exportList()">📤 Exportar Lista</button>
-  <button class="btn btn-red"    onclick="resetAllMissing()">↩ Zerar Álbum</button>
+  <div class="action-buttons">
+    <button class="btn btn-green"  onclick="printMissing()">🖨️ Imprimir Faltantes</button>
+    <button class="btn btn-blue"   onclick="importList()">📋 Importar Lista</button>
+    <button class="btn btn-orange" onclick="exportList()">📤 Exportar Lista</button>
+    <button class="btn btn-red"    onclick="resetAllMissing()">↩ Zerar Álbum</button>
+    <button class="btn btn-dupes"  id="btnDupes" onclick="showDupesPanel()">🔁 Repetidas (<span id="dupesTotal">0</span>)</button>
+  </div>
   <div class="auth-area">
-    <span class="sync-badge offline" id="syncBadge">sem sync</span>
+    <span class="sync-badge offline" id="syncBadge" title="Sem sincronização" aria-label="Sem sincronização"></span>
     <div id="userChip" class="user-chip" style="display:none"></div>
     <button class="btn btn-auth" id="btnLogin" onclick="showLoginModal()">🔑 Login</button>
-    <button class="btn btn-admin" id="btnAdmin" style="display:none" onclick="showAdminPanel()">👥 Usuários</button>
+    <button class="btn btn-admin" id="btnAdmin" style="display:none" onclick="showAdminPanel()">ADMIN</button>
     <button class="btn btn-signout" id="btnLogout" style="display:none" onclick="doSignOut()">Sair</button>
   </div>
-  <span class="toolbar-hint">Estado salvo automaticamente no navegador</span>
 </div>
 
-<div id="adminModal" class="modal-overlay" onclick="if(event.target===this)closeAdminModal()">
-  <div class="modal-box" style="width:520px;max-height:80vh;display:flex;flex-direction:column">
-    <h2 style="margin-bottom:12px">👥 Usuários cadastrados</h2>
-    <div id="adminList" style="overflow-y:auto;flex:1;font-size:13px"></div>
-    <div style="margin-top:14px;text-align:right">
-      <button class="btn btn-gray" onclick="closeAdminModal()">Fechar</button>
+<div id="adminModal" class="drawer-overlay" onclick="if(event.target===this)closeAdminModal()">
+  <div class="drawer-panel">
+    <div class="drawer-header">
+      <h2>👥 Usuários cadastrados</h2>
+      <button class="drawer-close" onclick="closeAdminModal()" aria-label="Fechar">×</button>
+    </div>
+    <div class="drawer-body">
+      <div class="drawer-summary">
+        <div class="summary-card"><span>Cadastrados</span><strong id="adminTotalUsers">0</strong></div>
+        <div class="summary-card"><span>Ativos</span><strong id="adminActiveUsers">0</strong></div>
+        <div class="summary-card"><span>Inativos</span><strong id="adminInactiveUsers">0</strong></div>
+      </div>
+      <div id="adminList" style="font-size:16px"></div>
+    </div>
+  </div>
+</div>
+
+<div id="rankingModal" class="drawer-overlay" onclick="if(event.target===this)closeRankingPanel()">
+  <div class="drawer-panel">
+    <div class="drawer-header">
+      <h2>🏆 Ranking dos colecionadores</h2>
+      <button class="drawer-close" onclick="closeRankingPanel()" aria-label="Fechar">×</button>
+    </div>
+    <div class="drawer-body">
+      <div id="rankingList" style="font-size:16px"></div>
+    </div>
+  </div>
+</div>
+
+<div id="confirmDeleteModal" class="modal-overlay">
+  <div class="modal-box">
+    <h2>Excluir usuário?</h2>
+    <p id="deleteConfirmText" style="font-size:14px;color:#555;line-height:1.45;margin-bottom:14px"></p>
+    <div class="modal-error" id="deleteError"></div>
+    <div class="modal-row">
+      <button class="btn btn-red" onclick="deleteSelectedUser()">Excluir</button>
+      <button class="btn btn-gray" onclick="closeDeleteConfirm()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div id="chipStepper">
+  <span class="step-label">Repetidas:</span>
+  <button class="step-btn minus" onclick="stepMinus()" title="Remover — com 0 volta para Faltando">−</button>
+  <span class="step-count" id="stepCount">0</span>
+  <button class="step-btn" onclick="stepPlus()" title="Adicionar repetida">+</button>
+  <button class="step-zero" onclick="stepZero()">ZERAR</button>
+</div>
+
+<div id="dupesModal" class="drawer-overlay" onclick="if(event.target===this)closeDupesPanel()">
+  <div class="drawer-panel">
+    <div class="drawer-header">
+      <h2>🔁 Figurinhas Repetidas</h2>
+      <button class="drawer-close" onclick="closeDupesPanel()" aria-label="Fechar">×</button>
+    </div>
+    <div class="drawer-body">
+      <div class="drawer-summary">
+        <div class="summary-card"><span>Tipos diferentes</span><strong id="dupesTotalUnique">0</strong></div>
+        <div class="summary-card"><span>Total de cópias extras</span><strong id="dupesTotalStickers">0</strong></div>
+      </div>
+      <div id="dupesList" style="margin-top:8px"></div>
+    </div>
+  </div>
+</div>
+
+<div id="exportModal" class="modal-overlay" onclick="if(event.target===this)closeExportModal()">
+  <div class="modal-box">
+    <h2>Exportar faltantes</h2>
+    <p style="font-size:14px;color:#555;line-height:1.45;margin-bottom:14px">
+      Escolha se deseja copiar a lista de códigos dos cromos ou gerar um PDF com o mesmo layout da impressão.
+    </p>
+    <div class="modal-row">
+      <button class="btn btn-blue" onclick="copyMissingList()">Copiar lista</button>
+      <button class="btn btn-green" onclick="exportMissingPdf()">Gerar PDF</button>
+      <button class="btn btn-gray" onclick="closeExportModal()">Cancelar</button>
     </div>
   </div>
 </div>
 
 <div class="nav-bar">
-  <span class="nav-label">⚡ Ir para:</span>
+  <span class="nav-label">Seleção rápida de times</span>
   <div class="cs-wrap" id="csWrap">
     <button class="cs-trigger" id="csTrigger" onclick="toggleCs()">
       <span id="csLabel">— Selecione um time —</span>
@@ -354,6 +798,21 @@ main { padding: 10px 12px; }
     <div class="cs-panel" id="csPanel">
       <input class="cs-search" id="csSearch" type="text" placeholder="🔍 Filtrar times..." oninput="filterCs(this.value)" autocomplete="off">
       <ul class="cs-list" id="csList"></ul>
+    </div>
+  </div>
+  <div class="nav-actions">
+    <div class="filter-bar" aria-label="Filtros de figurinhas">
+      <button class="btn-filter btn-filter-missing active" id="btnMissing" onclick="toggleFilter('missing')">🔴 Faltando</button>
+      <button class="btn-filter btn-filter-have active"    id="btnHave"    onclick="toggleFilter('have')">🟢 Tenho</button>
+    </div>
+    <button class="btn btn-ranking" id="btnRanking" style="display:none" onclick="showRankingPanel()">🏆 Ranking dos colecionadores</button>
+    <div class="view-toggle" id="viewToggle">
+      <button class="btn" id="btnViewLine" onclick="setViewMode('line')" title="Visualizar em linha" aria-label="Visualizar em linha">☰</button>
+      <button class="btn" id="btnViewGrid" onclick="setViewMode('grid')" title="Visualizar em grade" aria-label="Visualizar em grade">▦</button>
+      <div class="view-tip" id="viewTip" style="display:none">
+        Você pode visualizar o times em linha ou grade, escolha o método que mais gosta.
+        <button onclick="dismissViewTip()">Entendi</button>
+      </div>
     </div>
   </div>
 </div>
@@ -436,7 +895,7 @@ const TEAMS = [
 ];
 
 function flagImg(iso2, h) {
-  return `<img src="https://flagcdn.com/w40/${iso2}.png" height="${h}" style="vertical-align:middle;border:1px solid rgba(0,0,0,.1);border-radius:2px" alt="" loading="lazy">`;
+  return `<img src="https://flagcdn.com/w40/${iso2}.png" height="${h}" style="vertical-align:middle;border:1px solid rgba(0,0,0,.1);border-radius:2px" alt="" loading="eager" decoding="sync">`;
 }
 
 const GROUPS = ['A','B','C','D','E','F','G','H','I','J','K','L'];
@@ -460,13 +919,200 @@ function numToLabel(n) {
   return '?';
 }
 
+function labelToNum(label) {
+  const value = String(label || '').trim().toUpperCase();
+  const fwc = value.match(/^FWC(\d{2})$/);
+  if (fwc) {
+    const pos = parseInt(fwc[1], 10);
+    if (pos >= 0 && pos <= 8) return pos + 1;
+    if (pos >= 9 && pos <= 19) return 970 + (pos - 9);
+  }
+  const teamSticker = value.match(/^([A-Z]{3})(\d{1,2})$/);
+  if (teamSticker) {
+    const team = TEAMS.find(t => t.code === teamSticker[1]);
+    const pos = parseInt(teamSticker[2], 10);
+    if (team && pos >= 1 && pos <= 20) return team.start + pos - 1;
+  }
+  return null;
+}
+
 // ═══════════════════════════════════════════════
 // STATE  (true = missing, false = have)
 // ═══════════════════════════════════════════════
 let state = {};
+let dupes = {};
+let activeStepperN = null;
+let outsideStepperHandler = null;
 
 function initState() {
   for (let n = 1; n <= 980; n++) state[n] = true; // all missing by default
+}
+function initDupes() {
+  for (let n = 1; n <= 980; n++) dupes[n] = 0;
+}
+function loadDupes() {
+  const raw = storageGet('copa2026_dupes_v1');
+  if (raw) {
+    try {
+      const obj = JSON.parse(raw);
+      for (let n = 1; n <= 980; n++) dupes[n] = parseInt(obj[n] || 0) || 0;
+      return;
+    } catch {}
+  }
+  initDupes();
+}
+function persistDupes() {
+  const obj = {};
+  for (let n = 1; n <= 980; n++) if (dupes[n] > 0) obj[n] = dupes[n];
+  storageSet('copa2026_dupes_v1', JSON.stringify(obj));
+}
+function updateBadge(n) {
+  const el = document.getElementById('c' + n);
+  if (!el) return;
+  let badge = el.querySelector('.chip-dupe-badge');
+  if (dupes[n] > 0) {
+    if (!badge) { badge = document.createElement('span'); badge.className = 'chip-dupe-badge'; el.appendChild(badge); }
+    badge.textContent = '+' + dupes[n];
+  } else {
+    if (badge) badge.remove();
+  }
+}
+function updateAllBadges() {
+  for (let n = 1; n <= 980; n++) updateBadge(n);
+}
+function countTotalDupes() {
+  let t = 0; for (let n = 1; n <= 980; n++) t += dupes[n]; return t;
+}
+function updateDupesBtn() {
+  const el = document.getElementById('dupesTotal');
+  if (el) el.textContent = countTotalDupes();
+}
+
+// ── Stepper ──
+function openStepper(n, chipEl) {
+  closeStepper();
+  activeStepperN = n;
+  const stepper = document.getElementById('chipStepper');
+  document.getElementById('stepCount').textContent = dupes[n];
+  stepper.style.display = 'flex';
+  const rect = chipEl.getBoundingClientRect();
+  const sw = stepper.offsetWidth, sh = stepper.offsetHeight;
+  let top = rect.bottom + 6;
+  if (top + sh > window.innerHeight - 8) top = rect.top - sh - 6;
+  let left = rect.left + rect.width / 2 - sw / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - sw - 8));
+  stepper.style.top = Math.max(8, top) + 'px';
+  stepper.style.left = left + 'px';
+  outsideStepperHandler = (e) => {
+    const stepper = document.getElementById('chipStepper');
+    if (!stepper.contains(e.target)) closeStepper();
+    else setTimeout(() => document.addEventListener('click', outsideStepperHandler, { once: true }), 0);
+  };
+  setTimeout(() => document.addEventListener('click', outsideStepperHandler, { once: true }), 0);
+}
+function closeStepper() {
+  const stepper = document.getElementById('chipStepper');
+  if (!stepper || stepper.style.display === 'none') return;
+  stepper.style.display = 'none';
+  if (outsideStepperHandler) { document.removeEventListener('click', outsideStepperHandler); outsideStepperHandler = null; }
+  activeStepperN = null;
+}
+function stepPlus() {
+  if (activeStepperN === null) return;
+  dupes[activeStepperN]++;
+  document.getElementById('stepCount').textContent = dupes[activeStepperN];
+  updateBadge(activeStepperN);
+  updateDupesBtn();
+  persistDupes();
+  scheduleSync();
+}
+function stepMinus() {
+  if (activeStepperN === null) return;
+  const n = activeStepperN;
+  if (dupes[n] > 0) {
+    dupes[n]--;
+    document.getElementById('stepCount').textContent = dupes[n];
+    updateBadge(n);
+    updateDupesBtn();
+    persistDupes();
+    scheduleSync();
+  } else {
+    // 0 duplicates → volta para faltando
+    state[n] = true;
+    const el = document.getElementById('c' + n);
+    if (el) { el.className = 'chip missing'; el.style.display = showMissing ? '' : 'none'; }
+    closeStepper();
+    updateStats();
+    persist();
+    scheduleSync();
+  }
+}
+function stepZero() {
+  if (activeStepperN === null) return;
+  dupes[activeStepperN] = 0;
+  document.getElementById('stepCount').textContent = 0;
+  updateBadge(activeStepperN);
+  updateDupesBtn();
+  persistDupes();
+  scheduleSync();
+  closeStepper();
+}
+
+// ── Painel de repetidas ──
+function showDupesPanel() {
+  const list = document.getElementById('dupesList');
+  list.innerHTML = '';
+  let totalStickers = 0, totalUnique = 0;
+  const fwcItems = [];
+  for (let n = 1; n <= 9; n++) if (dupes[n] > 0) fwcItems.push({ n, label: numToLabel(n), count: dupes[n] });
+  for (let n = 970; n <= 980; n++) if (dupes[n] > 0) fwcItems.push({ n, label: numToLabel(n), count: dupes[n] });
+  if (fwcItems.length) {
+    list.appendChild(buildDupesSection('★ FWC', null, fwcItems));
+    fwcItems.forEach(d => { totalStickers += d.count; totalUnique++; });
+  }
+  for (const team of TEAMS) {
+    const items = [];
+    for (let pos = 1; pos <= 20; pos++) {
+      const n = team.start + pos - 1;
+      if (dupes[n] > 0) items.push({ n, label: team.code + pos, count: dupes[n] });
+    }
+    if (!items.length) continue;
+    list.appendChild(buildDupesSection(team.name, team.iso2, items));
+    items.forEach(d => { totalStickers += d.count; totalUnique++; });
+  }
+  if (!totalUnique) {
+    list.innerHTML = '<p style="color:#aaa;text-align:center;padding:28px 0;font-size:14px">Nenhuma figurinha repetida registrada.<br>Clique duas vezes num chip verde para adicionar repetidas.</p>';
+  }
+  document.getElementById('dupesTotalUnique').textContent = totalUnique;
+  document.getElementById('dupesTotalStickers').textContent = totalStickers;
+  document.getElementById('dupesModal').classList.add('open');
+}
+function buildDupesSection(name, iso2, items) {
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'margin-bottom:14px';
+  const hdr = document.createElement('div');
+  hdr.style.cssText = 'display:flex;align-items:center;gap:6px;font-weight:700;font-size:13px;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid #eee';
+  hdr.innerHTML = (iso2 ? flagImg(iso2, 16) + ' ' : '') + name;
+  wrap.appendChild(hdr);
+  const chips = document.createElement('div');
+  chips.style.cssText = 'display:flex;flex-wrap:wrap;gap:5px';
+  for (const item of items) {
+    const chip = document.createElement('div');
+    chip.style.cssText = 'display:flex;align-items:center;gap:4px;background:#fff8e1;border:1px solid #ffc107;border-radius:6px;padding:4px 8px;cursor:pointer';
+    chip.title = 'Clique para ajustar';
+    chip.innerHTML = `<span style="font-size:13px;font-weight:700">${item.label}</span><span style="background:#e65100;color:white;border-radius:10px;padding:0 6px;font-size:11px;font-weight:800">×${item.count}</span>`;
+    chip.onclick = () => {
+      closeDupesPanel();
+      const chipEl = document.getElementById('c' + item.n);
+      if (chipEl) { chipEl.scrollIntoView({ behavior: 'smooth', block: 'center' }); setTimeout(() => openStepper(item.n, chipEl), 350); }
+    };
+    chips.appendChild(chip);
+  }
+  wrap.appendChild(chips);
+  return wrap;
+}
+function closeDupesPanel() {
+  document.getElementById('dupesModal').classList.remove('open');
 }
 
 function storageGet(key) {
@@ -490,6 +1136,7 @@ function loadState() {
 
 function persist() {
   storageSet('copa2026_v2', JSON.stringify(state));
+  persistDupes();
 }
 
 // ═══════════════════════════════════════════════
@@ -505,6 +1152,31 @@ function makeChip(n, label) {
   el.title = '#' + n + ' → ' + label;
   el.onclick = () => toggle(n);
   return el;
+}
+
+function applyViewMode() {
+  document.body.classList.toggle('view-line', viewMode === 'line');
+  document.body.classList.toggle('view-grid', viewMode === 'grid');
+  const btnLine = document.getElementById('btnViewLine');
+  const btnGrid = document.getElementById('btnViewGrid');
+  if (btnLine) btnLine.classList.toggle('active', viewMode === 'line');
+  if (btnGrid) btnGrid.classList.toggle('active', viewMode === 'grid');
+  const tip = document.getElementById('viewTip');
+  if (tip) tip.style.display = viewTutorialSeen ? 'none' : '';
+}
+
+function setViewMode(mode) {
+  viewMode = mode === 'grid' ? 'grid' : 'line';
+  storageSet('copa2026_viewMode', viewMode);
+  applyViewMode();
+  saveUserSettings({ viewMode });
+}
+
+function dismissViewTip() {
+  viewTutorialSeen = true;
+  storageSet('copa2026_viewTipSeen', '1');
+  applyViewMode();
+  saveUserSettings({ viewTutorialSeen: true });
 }
 
 function buildUI() {
@@ -523,11 +1195,11 @@ function buildUI() {
     </div>
     <div class="fwc-section">
       <div class="fwc-sub">
-        <div class="fwc-sub-title">Início do Álbum (FWC00–FWC08)</div>
+        <div class="fwc-sub-title"><span class="fwc-title-main">Início do Álbum</span><br><span class="fwc-title-range">(FWC00–FWC08)</span></div>
         <div class="stickers-wrap" id="fw_start"></div>
       </div>
       <div class="fwc-sub">
-        <div class="fwc-sub-title">Final do Álbum (FWC09–FWC19)</div>
+        <div class="fwc-sub-title"><span class="fwc-title-main">Final do Álbum</span><br><span class="fwc-title-range">(FWC09–FWC19)</span></div>
         <div class="stickers-wrap" id="fw_end"></div>
       </div>
     </div>`;
@@ -559,7 +1231,7 @@ function buildUI() {
       tb.className = 'team-block';
       tb.id = 'tb_' + team.code;
       tb.innerHTML = `
-        <div class="team-name-row">${flagImg(team.iso2, 14)} ${team.name}</div>
+        <div class="team-name-row"><span class="team-flag">${flagImg(team.iso2, 18)}</span><span class="team-name">${team.name}</span></div>
         <div class="team-meta-row">
           <span class="team-code">${team.code}</span>
           <span class="team-meta" id="tm_${team.code}"></span>
@@ -579,6 +1251,7 @@ function buildUI() {
   }
 
   updateStats();
+  applyViewMode();
 }
 
 // ═══════════════════════════════════════════════
@@ -586,18 +1259,19 @@ function buildUI() {
 // ═══════════════════════════════════════════════
 
 function toggle(n) {
-  state[n] = !state[n];
-  const el = document.getElementById('c' + n);
-  if (el) {
-    el.className = 'chip ' + (state[n] ? 'missing' : 'have');
-    if (state[n] && !showMissing) el.style.display = 'none';
-    if (!state[n] && !showHave)   el.style.display = 'none';
-    if (state[n] && showMissing)  el.style.display = '';
-    if (!state[n] && showHave)    el.style.display = '';
+  if (state[n]) {
+    // faltando → tenho
+    state[n] = false;
+    dupes[n] = 0;
+    const el = document.getElementById('c' + n);
+    if (el) { el.className = 'chip have'; el.style.display = showHave ? '' : 'none'; }
+    updateStats();
+    persist();
+    scheduleSync();
+  } else {
+    // já tenho → abre stepper de repetidas
+    openStepper(n, document.getElementById('c' + n));
   }
-  updateStats();
-  persist();
-  scheduleSync();
 }
 
 function countRange(from, to) {
@@ -610,8 +1284,9 @@ function updateStats() {
   let totalMissing = 0;
   for (let n = 1; n <= 980; n++) if (state[n]) totalMissing++;
   const have = 980 - totalMissing;
+  const percent = Math.round((have / 980) * 100);
   document.getElementById('globalStats').innerHTML =
-    `<strong>Tenho: ${have}</strong><br>Faltam: ${totalMissing} / 980`;
+    `<span class="album-percent">${percent}%</span><span class="album-counts"><strong>Tenho: ${have}</strong><br>Faltam: ${totalMissing} / 980</span>`;
   const ps = document.getElementById('printStats');
   if (ps) ps.textContent = `Tenho: ${have}  |  Faltam: ${totalMissing} / 980`;
 
@@ -638,13 +1313,32 @@ function updateStats() {
     const gs = document.getElementById('gs_' + g);
     if (gs) gs.textContent = gMissing ? `Faltam ${gMissing}/80` : '✓ Completo';
   }
+  updateDupesBtn();
 }
 
 // ═══════════════════════════════════════════════
 // ACTIONS
 // ═══════════════════════════════════════════════
 
-function printMissing() {
+async function waitForPrintFlags() {
+  const imgs = Array.from(document.querySelectorAll('.team-flag img'));
+  imgs.forEach(img => {
+    img.loading = 'eager';
+    img.decoding = 'sync';
+    img.fetchPriority = 'high';
+  });
+  const pending = imgs.filter(img => !img.complete || img.naturalWidth === 0).map(img =>
+    new Promise(resolve => {
+      const done = () => resolve();
+      img.addEventListener('load', done, { once: true });
+      img.addEventListener('error', done, { once: true });
+      setTimeout(done, 1400);
+    })
+  );
+  await Promise.all(pending);
+}
+
+async function printMissing() {
   // Tag team blocks and group blocks for print-hide
   for (const team of TEAMS) {
     const { missing } = countRange(team.start, team.start + 19);
@@ -664,16 +1358,23 @@ function printMissing() {
     const gb = document.getElementById('gb_' + g);
     if (gb) gb.classList.toggle('print-hide', gMissing === 0);
   }
+  await waitForPrintFlags();
   window.print();
 }
 
 function importList() {
   const input = prompt(
-    'Cole a lista de NÚMEROS FALTANTES (separados por vírgulas ou espaços):\n' +
-    'Ex: 2, 3, 5, 11, 45...'
+    'Cole a lista de CÓDIGOS ou NÚMEROS FALTANTES (separados por vírgulas ou espaços):\n' +
+    'Ex: KOR14, FWC03, ENG7 ou 2, 3, 45...'
   );
   if (input == null) return;
-  const nums = input.split(/[\s,;]+/).map(v => parseInt(v)).filter(n => n >= 1 && n <= 980 && !isNaN(n));
+  const nums = input.split(/[\s,;]+/)
+    .map(v => {
+      const numeric = parseInt(v, 10);
+      if (!isNaN(numeric) && String(v).trim().match(/^\d+$/)) return numeric;
+      return labelToNum(v);
+    })
+    .filter(n => n >= 1 && n <= 980);
   if (!nums.length) { alert('Nenhum número válido encontrado.'); return; }
   for (let n = 1; n <= 980; n++) state[n] = false;
   nums.forEach(n => { state[n] = true; });
@@ -684,19 +1385,233 @@ function importList() {
 }
 
 function exportList() {
+  document.getElementById('exportModal').classList.add('open');
+}
+
+function closeExportModal() {
+  document.getElementById('exportModal').classList.remove('open');
+}
+
+function getMissingLabels() {
   const missing = [];
-  for (let n = 1; n <= 980; n++) if (state[n]) missing.push(n);
-  const txt = missing.join(', ');
+  for (let n = 1; n <= 980; n++) if (state[n]) missing.push(numToLabel(n));
+  return missing;
+}
+
+function copyMissingList() {
+  const txt = getMissingLabels().join(', ');
   if (navigator.clipboard) {
-    navigator.clipboard.writeText(txt).then(() => toast('Lista copiada para a área de transferência!'));
+    navigator.clipboard.writeText(txt).then(() => {
+      closeExportModal();
+      toast('Lista copiada para a área de transferência!');
+    });
   } else {
+    closeExportModal();
     prompt('Copie a lista abaixo (Ctrl+A, Ctrl+C):', txt);
   }
 }
 
+async function exportMissingPdf() {
+  closeExportModal();
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    alert('Não foi possível carregar o gerador de PDF. Tente novamente em alguns segundos.');
+    return;
+  }
+  const btn = document.querySelector('#exportModal .btn-green');
+  if (btn) btn.disabled = true;
+  try {
+    const doc = await buildMissingPdf();
+    doc.save('album-copa-26-faltantes.pdf');
+  } catch(e) {
+    console.warn('Erro ao gerar PDF:', e);
+    alert('Erro ao gerar PDF: ' + e.message);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+const PDF_GROUP_COLORS = {
+  FWC: [0,95,31], A: [183,28,28], B: [13,71,161], C: [27,94,32], D: [230,81,0],
+  E: [74,20,140], F: [0,96,100], G: [136,14,79], H: [245,127,23], I: [26,35,126],
+  J: [74,20,140], K: [62,39,35], L: [38,50,56]
+};
+
+const PDF_FLAG_CACHE = {};
+
+async function flagDataUrl(iso2) {
+  if (PDF_FLAG_CACHE[iso2]) return PDF_FLAG_CACHE[iso2];
+  try {
+    const res = await fetch(`https://flagcdn.com/w40/${iso2}.png`, { mode: 'cors' });
+    const blob = await res.blob();
+    const data = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+    PDF_FLAG_CACHE[iso2] = data;
+    return data;
+  } catch(e) {
+    PDF_FLAG_CACHE[iso2] = '';
+    return '';
+  }
+}
+
+function missingLabelsForRange(from, to) {
+  const labels = [];
+  for (let n = from; n <= to; n++) if (state[n]) labels.push(numToLabel(n));
+  return labels;
+}
+
+function pdfTextColorForBg(rgb) {
+  const [r, g, b] = rgb;
+  return (r * 0.299 + g * 0.587 + b * 0.114) > 150 ? [20,20,20] : [255,255,255];
+}
+
+function pdfDrawStickers(doc, labels, x, y, w, chipH) {
+  const cols = 10;
+  const gap = 0.6;
+  const chipW = (w - gap * (cols - 1)) / cols;
+  labels.forEach((label, idx) => {
+    const col = idx % cols;
+    const row = Math.floor(idx / cols);
+    const cx = x + col * (chipW + gap);
+    const cy = y + row * (chipH + gap);
+    doc.setFillColor(255, 240, 240);
+    doc.setDrawColor(240, 128, 128);
+    doc.roundedRect(cx, cy, chipW, chipH, 0.6, 0.6, 'FD');
+    doc.setTextColor(190, 0, 0);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6.2);
+    doc.text(label, cx + chipW / 2, cy + chipH * 0.68, { align: 'center' });
+  });
+}
+
+function pdfStickerRows(labels) {
+  return Math.max(1, Math.ceil(labels.length / 10));
+}
+
+async function buildMissingPdf() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const m = 8;
+  const contentW = pageW - m * 2;
+  const chipH = 4.6;
+  const rowGap = 0.6;
+  let y = m;
+
+  const addPageIfNeeded = h => {
+    if (y + h > pageH - m) {
+      doc.addPage();
+      y = m;
+    }
+  };
+
+  const have = getMissingLabels().length;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(20,20,20);
+  doc.text('Album Copa 26 - Faltantes', m, y);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.text(`Faltam: ${have} / 980`, pageW - m, y, { align: 'right' });
+  y += 5;
+  doc.setDrawColor(80,80,80);
+  doc.line(m, y, pageW - m, y);
+  y += 3;
+
+  const drawHeader = (label, stats, colorKey) => {
+    const color = PDF_GROUP_COLORS[colorKey] || [50,50,50];
+    addPageIfNeeded(7);
+    doc.setFillColor(...color);
+    doc.rect(m, y, contentW, 5.5, 'F');
+    doc.setTextColor(...pdfTextColorForBg(color));
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.text(label, m + 2, y + 3.7);
+    doc.setFont('helvetica', 'normal');
+    doc.text(stats, pageW - m - 2, y + 3.7, { align: 'right' });
+    y += 5.5;
+  };
+
+  const drawTeamRow = async team => {
+    const labels = missingLabelsForRange(team.start, team.start + 19);
+    if (!labels.length) return;
+    const rows = pdfStickerRows(labels);
+    const rowH = Math.max(6.5, rows * chipH + (rows - 1) * rowGap + 1.4);
+    addPageIfNeeded(rowH);
+    doc.setDrawColor(220,220,220);
+    doc.line(m, y, pageW - m, y);
+    const flag = await flagDataUrl(team.iso2);
+    if (flag) doc.addImage(flag, 'PNG', m + 1, y + 1.1, 4.8, 3.6);
+    doc.setTextColor(20,20,20);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.text(team.name, m + 7, y + 4.4, { maxWidth: 28 });
+    doc.setFillColor(240,240,240);
+    doc.setDrawColor(210,210,210);
+    doc.roundedRect(m + 38, y + 1.6, 10, 3.8, 0.5, 0.5, 'FD');
+    doc.setFontSize(6);
+    doc.text(team.code, m + 43, y + 4.3, { align: 'center' });
+    doc.setTextColor(190,0,0);
+    doc.setFontSize(6.2);
+    doc.text(`Faltam ${labels.length}/20`, m + 52, y + 4.3);
+    pdfDrawStickers(doc, labels, m + 70, y + 0.8, contentW - 70, chipH);
+    y += rowH;
+  };
+
+  const drawFwcRow = (title, range, labels) => {
+    if (!labels.length) return;
+    const rows = pdfStickerRows(labels);
+    const rowH = Math.max(7.8, rows * chipH + (rows - 1) * rowGap + 1.6);
+    addPageIfNeeded(rowH);
+    doc.setDrawColor(220,220,220);
+    doc.line(m, y, pageW - m, y);
+    doc.setTextColor(20,20,20);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.text(title, m + 1, y + 3.2);
+    doc.setFont('helvetica', 'normal');
+    doc.text(range, m + 1, y + 6.2);
+    pdfDrawStickers(doc, labels, m + 70, y + 0.8, contentW - 70, chipH);
+    y += rowH;
+  };
+
+  const fwcStart = missingLabelsForRange(1, 9);
+  const fwcEnd = missingLabelsForRange(970, 980);
+  const fwcTotal = fwcStart.length + fwcEnd.length;
+  if (fwcTotal) {
+    drawHeader('★ Figurinhas Especiais FWC', `Faltam ${fwcTotal}/20`, 'FWC');
+    drawFwcRow('Inicio do Album', '(FWC00-FWC08)', fwcStart);
+    drawFwcRow('Final do Album', '(FWC09-FWC19)', fwcEnd);
+    y += 2;
+  }
+
+  for (const g of GROUPS) {
+    const teams = TEAMS.filter(t => t.group === g);
+    const rows = teams.map(team => ({ team, labels: missingLabelsForRange(team.start, team.start + 19) }))
+      .filter(row => row.labels.length);
+    if (!rows.length) continue;
+    const totalMissing = rows.reduce((sum, row) => sum + row.labels.length, 0);
+    const estimatedH = 5.5 + rows.reduce((sum, row) => {
+      const rowsCount = pdfStickerRows(row.labels);
+      return sum + Math.max(6.5, rowsCount * chipH + (rowsCount - 1) * rowGap + 1.4);
+    }, 0) + 2;
+    addPageIfNeeded(estimatedH);
+    drawHeader(`Grupo ${g}`, `Faltam ${totalMissing}/80`, g);
+    for (const row of rows) await drawTeamRow(row.team);
+    y += 2;
+  }
+
+  return doc;
+}
+
 function resetAllMissing() {
   if (!confirm('Marcar TODAS as 980 figurinhas como faltantes?')) return;
-  for (let n = 1; n <= 980; n++) state[n] = true;
+  for (let n = 1; n <= 980; n++) { state[n] = true; dupes[n] = 0; }
+  closeStepper();
   refreshAll();
   persist();
   scheduleSync();
@@ -729,6 +1644,7 @@ function refreshAll() {
     const el = document.getElementById('c' + n);
     if (el) el.className = 'chip ' + (state[n] ? 'missing' : 'have');
   }
+  updateAllBadges();
   updateStats();
   applyFilter();
 }
@@ -746,7 +1662,7 @@ function toast(msg) {
 // FIREBASE
 // ═══════════════════════════════════════════════
 
-const ADMIN_EMAIL = 'douek.renato@gmail.com';
+const ADMIN_EMAIL = 'douekweb@gmail.com';
 
 const FIREBASE_CONFIG = {
   apiKey:            "AIzaSyCEaoUmzQkZ58jANyf5aVLoPNDDFT7Z6Ag",
@@ -759,6 +1675,12 @@ const FIREBASE_CONFIG = {
 
 let db = null, auth = null, currentUser = null;
 let syncTimer = null;
+let adminUsersCache = [];
+let adminSort = { key: 'createdAtMs', dir: 'desc' };
+let deleteTargetUser = null;
+let editingUserId = null;
+let viewMode = storageGet('copa2026_viewMode') || 'line';
+let viewTutorialSeen = storageGet('copa2026_viewTipSeen') === '1';
 
 function initFirebase() {
   try {
@@ -776,12 +1698,14 @@ async function onAuthChanged(user) {
   if (user) {
     setSyncBadge('syncing', 'sincronizando…');
     await registerUser(user);
+    await loadUserSettings(user.uid);
     await loadFromFirestore(user.uid);
     refreshAll();
     setSyncBadge('ok', '☁️ sincronizado');
     document.getElementById('btnLogin').style.display  = 'none';
     document.getElementById('btnLogout').style.display = '';
-    document.getElementById('btnAdmin').style.display  = user.email === ADMIN_EMAIL ? '' : 'none';
+    document.getElementById('btnAdmin').style.display  = isAdminUser(user) ? '' : 'none';
+    document.getElementById('btnRanking').style.display = isAdminUser(user) ? '' : 'none';
     const chip = document.getElementById('userChip');
     chip.style.display = '';
     chip.innerHTML = user.photoURL
@@ -793,7 +1717,11 @@ async function onAuthChanged(user) {
     document.getElementById('btnLogin').style.display  = '';
     document.getElementById('btnLogout').style.display = 'none';
     document.getElementById('btnAdmin').style.display  = 'none';
+    document.getElementById('btnRanking').style.display = 'none';
     document.getElementById('userChip').style.display  = 'none';
+    viewMode = storageGet('copa2026_viewMode') || 'line';
+    viewTutorialSeen = storageGet('copa2026_viewTipSeen') === '1';
+    applyViewMode();
   }
 }
 
@@ -802,9 +1730,12 @@ async function registerUser(user) {
     const ref = db.collection('users').doc(user.uid);
     const doc = await ref.get();
     if (!doc.exists) {
+      const nameParts = splitFullName(user.displayName || '');
       await ref.set({
         email:       user.email,
-        displayName: user.displayName || '',
+        firstName:   nameParts.firstName,
+        lastName:    nameParts.lastName,
+        displayName: joinFullName(nameParts.firstName, nameParts.lastName),
         photoURL:    user.photoURL    || '',
         createdAt:   firebase.firestore.FieldValue.serverTimestamp()
       });
@@ -814,46 +1745,321 @@ async function registerUser(user) {
   } catch(e) { console.warn('Erro ao registrar usuário:', e); }
 }
 
+async function loadUserSettings(uid) {
+  try {
+    const doc = await db.collection('users').doc(uid).get();
+    const data = doc.exists ? doc.data() : {};
+    viewMode = data.viewMode || storageGet('copa2026_viewMode') || 'line';
+    viewTutorialSeen = data.viewTutorialSeen === true || storageGet('copa2026_viewTipSeen') === '1';
+    storageSet('copa2026_viewMode', viewMode);
+    if (viewTutorialSeen) storageSet('copa2026_viewTipSeen', '1');
+    applyViewMode();
+  } catch(e) {
+    console.warn('Erro ao carregar preferências:', e);
+    applyViewMode();
+  }
+}
+
+async function saveUserSettings(patch) {
+  if (currentUser && db) {
+    try { await db.collection('users').doc(currentUser.uid).set(patch, { merge: true }); }
+    catch(e) { console.warn('Erro ao salvar preferências:', e); }
+  }
+}
+
+function isAdminUser(user) {
+  return !!user && (user.email || '').toLowerCase() === ADMIN_EMAIL;
+}
+
+function escapeHtml(value) {
+  return String(value || '').replace(/[&<>"']/g, ch => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[ch]));
+}
+
+function timestampMs(value) {
+  if (!value) return 0;
+  if (typeof value.toMillis === 'function') return value.toMillis();
+  if (value.seconds) return value.seconds * 1000;
+  return 0;
+}
+
+function formatTimestamp(value) {
+  const ms = timestampMs(value);
+  return ms ? new Date(ms).toLocaleString('pt-BR') : '-';
+}
+
+function splitFullName(fullName) {
+  const parts = String(fullName || '').trim().split(/\s+/).filter(Boolean);
+  return {
+    firstName: parts[0] || '',
+    lastName: parts.length > 1 ? parts.slice(1).join(' ') : ''
+  };
+}
+
+function joinFullName(firstName, lastName) {
+  return [firstName, lastName].map(v => String(v || '').trim()).filter(Boolean).join(' ');
+}
+
 async function showAdminPanel() {
   document.getElementById('adminModal').classList.add('open');
   const listEl = document.getElementById('adminList');
   listEl.innerHTML = '<p style="color:#888;padding:8px">Carregando…</p>';
   try {
-    const snap = await db.collection('users').orderBy('createdAt', 'desc').get();
-    if (snap.empty) { listEl.innerHTML = '<p style="color:#888;padding:8px">Nenhum usuário ainda.</p>'; return; }
-    const fmt = dt => dt ? new Date(dt.seconds * 1000).toLocaleString('pt-BR') : '—';
-    let rows = '';
-    snap.forEach(doc => {
-      const u = doc.data();
-      const avatar = u.photoURL
-        ? `<img src="${u.photoURL}" class="admin-avatar" referrerpolicy="no-referrer">`
-        : `<span class="admin-nophoto">👤</span>`;
-      rows += `<tr>
-        <td>${avatar}${u.displayName || u.email}</td>
-        <td style="color:#555">${u.email}</td>
-        <td style="color:#888;white-space:nowrap">${fmt(u.createdAt)}</td>
-        <td style="color:#aaa;white-space:nowrap">${fmt(u.lastLoginAt)}</td>
-      </tr>`;
-    });
-    listEl.innerHTML = `<table class="admin-table">
-      <thead><tr><th>Usuário</th><th>E-mail</th><th>Cadastro</th><th>Último acesso</th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table>`;
+    await loadAdminUsers();
+    renderAdminTable();
   } catch(e) {
-    listEl.innerHTML = `<p style="color:#c62828;padding:8px">Erro: ${e.message}</p>`;
+    listEl.innerHTML = `<p style="color:#c62828;padding:8px">Erro: ${escapeHtml(e.message)}</p>`;
   }
 }
 
+async function loadAdminUsers(force = false) {
+  if (adminUsersCache.length && !force) return adminUsersCache;
+  const snap = await db.collection('users').orderBy('createdAt', 'desc').get();
+  const users = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  adminUsersCache = await Promise.all(users.map(async u => {
+    let haveCount = 0;
+    try {
+      const albumDoc = await db.collection('albums').doc(u.id).get();
+      if (albumDoc.exists && Array.isArray(albumDoc.data().have)) {
+        haveCount = Math.max(0, Math.min(980, albumDoc.data().have.length));
+      }
+    } catch(e) {
+      console.warn('Erro ao carregar álbum do usuário:', u.id, e);
+    }
+    const nameParts = splitFullName(u.displayName || u.name || u.fullName || '');
+    const firstName = u.firstName || nameParts.firstName;
+    const lastName = u.lastName || nameParts.lastName;
+    const fullName = joinFullName(firstName, lastName);
+    return {
+      id: u.id,
+      fullName: fullName || u.email || 'Sem nome',
+      firstName,
+      lastName,
+      rankingName: safeRankingName(firstName, lastName),
+      email: u.email || '',
+      photoURL: u.photoURL || '',
+      createdAt: u.createdAt,
+      createdAtMs: timestampMs(u.createdAt),
+      haveCount,
+      missingCount: 980 - haveCount
+    };
+  }));
+  return adminUsersCache;
+}
+
+function safeRankingName(firstName, lastName) {
+  const first = String(firstName || '').trim();
+  const last = String(lastName || '').trim();
+  if (!first || !last) return 'Nome pendente';
+  return `${first} ${last[0].toUpperCase()}.`;
+}
+
+function sortAdminUsers(key) {
+  if (adminSort.key === key) {
+    adminSort.dir = adminSort.dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    adminSort = { key, dir: key === 'fullName' || key === 'email' ? 'asc' : 'desc' };
+  }
+  renderAdminTable();
+}
+
+function renderAdminTable() {
+  const listEl = document.getElementById('adminList');
+  const totalUsers = adminUsersCache.length;
+  const activeUsers = adminUsersCache.filter(u => u.haveCount > 0).length;
+  document.getElementById('adminTotalUsers').textContent = totalUsers;
+  document.getElementById('adminActiveUsers').textContent = activeUsers;
+  document.getElementById('adminInactiveUsers').textContent = totalUsers - activeUsers;
+  if (!totalUsers) {
+    listEl.innerHTML = '<p style="color:#888;padding:8px">Nenhum usuário ainda.</p>';
+    return;
+  }
+  const rowsData = [...adminUsersCache].sort((a, b) => {
+    const va = a[adminSort.key];
+    const vb = b[adminSort.key];
+    let cmp = 0;
+    if (typeof va === 'number' || typeof vb === 'number') {
+      cmp = (va || 0) - (vb || 0);
+    } else {
+      cmp = String(va || '').localeCompare(String(vb || ''), 'pt-BR', { sensitivity: 'base' });
+    }
+    return adminSort.dir === 'asc' ? cmp : -cmp;
+  });
+
+  const sortMark = key => adminSort.key === key ? (adminSort.dir === 'asc' ? ' ▲' : ' ▼') : '';
+  let rows = '';
+  rowsData.forEach(u => {
+    const avatar = u.photoURL
+      ? `<img src="${escapeHtml(u.photoURL)}" class="admin-avatar" referrerpolicy="no-referrer">`
+      : `<span class="admin-nophoto">👤</span>`;
+    const isEditing = editingUserId === u.id;
+    const nameCell = isEditing
+      ? `<div class="admin-name-edit">
+          <input id="editFirst_${escapeHtml(u.id)}" value="${escapeHtml(u.firstName)}" placeholder="Nome">
+          <input id="editLast_${escapeHtml(u.id)}" value="${escapeHtml(u.lastName)}" placeholder="Sobrenome">
+        </div>`
+      : `${avatar}${escapeHtml(u.fullName)}`;
+    const actionCell = isEditing
+      ? `<button class="btn-icon btn-edit" title="Salvar nome" onclick="saveUserName('${escapeHtml(u.id)}')">✓</button>
+         <button class="btn-icon" title="Cancelar edição" onclick="cancelEditUserName()">×</button>`
+      : `<button class="btn-icon btn-edit" title="Editar nome" onclick="editUserName('${escapeHtml(u.id)}')">✎</button>
+         <button class="btn-icon btn-trash" title="Excluir usuário" onclick="confirmDeleteUser('${escapeHtml(u.id)}')">🗑️</button>`;
+    rows += `<tr>
+      <td>${nameCell}</td>
+      <td style="color:#888;white-space:nowrap">${formatTimestamp(u.createdAt)}</td>
+      <td style="color:#555">${escapeHtml(u.email)}</td>
+      <td class="num">${u.haveCount}</td>
+      <td class="num">${u.missingCount}</td>
+      <td class="num" style="white-space:nowrap">${actionCell}</td>
+    </tr>`;
+  });
+
+  listEl.innerHTML = `<table class="admin-table">
+    <thead><tr>
+      <th class="sortable ${adminSort.key === 'fullName' ? 'sorted' : ''}" onclick="sortAdminUsers('fullName')">Nome completo${sortMark('fullName')}</th>
+      <th class="sortable ${adminSort.key === 'createdAtMs' ? 'sorted' : ''}" onclick="sortAdminUsers('createdAtMs')">Data cadastro${sortMark('createdAtMs')}</th>
+      <th class="sortable ${adminSort.key === 'email' ? 'sorted' : ''}" onclick="sortAdminUsers('email')">e-mail${sortMark('email')}</th>
+      <th class="sortable ${adminSort.key === 'haveCount' ? 'sorted' : ''}" onclick="sortAdminUsers('haveCount')">Tenho${sortMark('haveCount')}</th>
+      <th class="sortable ${adminSort.key === 'missingCount' ? 'sorted' : ''}" onclick="sortAdminUsers('missingCount')">Faltam${sortMark('missingCount')}</th>
+      <th></th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
 function closeAdminModal() { document.getElementById('adminModal').classList.remove('open'); }
+
+async function showRankingPanel() {
+  document.getElementById('rankingModal').classList.add('open');
+  const listEl = document.getElementById('rankingList');
+  listEl.innerHTML = '<p style="color:#888;padding:8px">Carregando…</p>';
+  try {
+    await loadAdminUsers(true);
+    renderRankingTable();
+  } catch(e) {
+    listEl.innerHTML = `<p style="color:#c62828;padding:8px">Erro: ${escapeHtml(e.message)}</p>`;
+  }
+}
+
+function renderRankingTable() {
+  const listEl = document.getElementById('rankingList');
+  const rowsData = [...adminUsersCache].sort((a, b) =>
+    (b.haveCount - a.haveCount) ||
+    String(a.fullName || '').localeCompare(String(b.fullName || ''), 'pt-BR', { sensitivity: 'base' })
+  );
+  if (!rowsData.length) {
+    listEl.innerHTML = '<p style="color:#888;padding:8px">Nenhum usuário ainda.</p>';
+    return;
+  }
+  const medals = ['🥇', '🥈', '🥉'];
+  const rows = rowsData.map((u, i) => {
+    const avatar = i < 3
+      ? `<span class="ranking-avatar ranking-medal">${medals[i]}</span>`
+      : '<span class="ranking-avatar">👤</span>';
+    const status = u.haveCount >= 980
+      ? '<span class="complete-badge">🏆 COMPLETOU!</span>'
+      : `<span>${u.haveCount} / ${u.missingCount}</span>`;
+    const percent = Math.round((u.haveCount / 980) * 100);
+    return `<tr>
+      <td class="num" style="font-weight:900">${i + 1}º</td>
+      <td>${avatar}${escapeHtml(u.rankingName)}</td>
+      <td>${status}</td>
+      <td class="num" style="font-weight:900">${percent}%</td>
+    </tr>`;
+  }).join('');
+  listEl.innerHTML = `<table class="admin-table">
+    <thead><tr><th>Posição</th><th>Colecionador</th><th>Tenho / Faltam</th><th>%</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+function closeRankingPanel() { document.getElementById('rankingModal').classList.remove('open'); }
+
+function editUserName(userId) {
+  editingUserId = userId;
+  renderAdminTable();
+}
+
+function cancelEditUserName() {
+  editingUserId = null;
+  renderAdminTable();
+}
+
+async function saveUserName(userId) {
+  const firstName = document.getElementById('editFirst_' + userId).value.trim();
+  const lastName = document.getElementById('editLast_' + userId).value.trim();
+  if (!firstName || !lastName) {
+    alert('Nome e sobrenome são obrigatórios.');
+    return;
+  }
+  const displayName = joinFullName(firstName, lastName);
+  try {
+    await db.collection('users').doc(userId).update({ firstName, lastName, displayName });
+    adminUsersCache = adminUsersCache.map(u => u.id === userId
+      ? { ...u, firstName, lastName, fullName: displayName, rankingName: safeRankingName(firstName, lastName) }
+      : u
+    );
+    editingUserId = null;
+    renderAdminTable();
+    if (document.getElementById('rankingModal').classList.contains('open')) renderRankingTable();
+    toast('Nome atualizado.');
+  } catch(e) {
+    alert('Erro ao atualizar nome: ' + e.message);
+  }
+}
+
+function confirmDeleteUser(userId) {
+  const user = adminUsersCache.find(u => u.id === userId);
+  if (!user) return;
+  deleteTargetUser = user;
+  document.getElementById('deleteError').textContent = '';
+  document.getElementById('deleteConfirmText').textContent =
+    `Isso vai excluir o cadastro e o álbum de ${user.fullName}. A conta de login do Firebase Auth não será apagada por esta tela.`;
+  document.getElementById('confirmDeleteModal').classList.add('open');
+}
+
+function closeDeleteConfirm() {
+  deleteTargetUser = null;
+  document.getElementById('confirmDeleteModal').classList.remove('open');
+}
+
+async function deleteSelectedUser() {
+  if (!deleteTargetUser) return;
+  const errEl = document.getElementById('deleteError');
+  errEl.textContent = '';
+  try {
+    const batch = db.batch();
+    batch.delete(db.collection('albums').doc(deleteTargetUser.id));
+    batch.delete(db.collection('users').doc(deleteTargetUser.id));
+    await batch.commit();
+    adminUsersCache = adminUsersCache.filter(u => u.id !== deleteTargetUser.id);
+    closeDeleteConfirm();
+    renderAdminTable();
+    if (document.getElementById('rankingModal').classList.contains('open')) renderRankingTable();
+    toast('Usuário excluído da plataforma.');
+  } catch(e) {
+    errEl.textContent = e.message;
+  }
+}
 
 async function loadFromFirestore(uid) {
   try {
     const doc = await db.collection('albums').doc(uid).get();
     if (doc.exists) {
       const have = doc.data().have || [];
-      for (let n = 1; n <= 980; n++) state[n] = true;
+      const rawDupes = doc.data().dupes || {};
+      for (let n = 1; n <= 980; n++) { state[n] = true; dupes[n] = 0; }
       have.forEach(n => { state[n] = false; });
-      persist(); // atualiza localStorage local
+      for (const [k, v] of Object.entries(rawDupes)) {
+        const n = parseInt(k);
+        if (n >= 1 && n <= 980) dupes[n] = parseInt(v) || 0;
+      }
+      persist();
     }
   } catch(e) {
     console.warn('Erro ao carregar do Firestore:', e);
@@ -872,10 +2078,14 @@ async function syncToFirestore() {
   try {
     const have = [];
     for (let n = 1; n <= 980; n++) if (!state[n]) have.push(n);
+    const dupesData = {};
+    for (let n = 1; n <= 980; n++) if (dupes[n] > 0) dupesData[String(n)] = dupes[n];
     await db.collection('albums').doc(currentUser.uid).set({
       have,
+      dupes: dupesData,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
+    adminUsersCache = [];
     setSyncBadge('ok', '☁️ sincronizado');
   } catch(e) {
     setSyncBadge('offline', 'erro ao salvar');
@@ -886,18 +2096,26 @@ async function syncToFirestore() {
 function setSyncBadge(type, text) {
   const el = document.getElementById('syncBadge');
   el.className = 'sync-badge' + (type !== 'ok' ? ' ' + type : '');
-  el.textContent = text;
+  el.textContent = '';
+  el.title = text;
+  el.setAttribute('aria-label', text);
 }
 
 // ── Modal de login ──
 function showLoginModal() { document.getElementById('loginModal').classList.add('open'); }
-function closeModal()      { document.getElementById('loginModal').classList.remove('open'); document.getElementById('authError').textContent = ''; }
+function closeModal()      {
+  document.getElementById('loginModal').classList.remove('open');
+  document.getElementById('authError').textContent = '';
+  document.getElementById('authFirstName').value = '';
+  document.getElementById('authLastName').value = '';
+}
 
 let currentTab = 'entrar';
 function switchTab(tab) {
   currentTab = tab;
   document.getElementById('tabEntrar').classList.toggle('active', tab === 'entrar');
   document.getElementById('tabCriar').classList.toggle('active', tab === 'criar');
+  document.getElementById('nameFields').style.display = tab === 'criar' ? '' : 'none';
   document.getElementById('btnEmailAction').textContent = tab === 'entrar' ? 'Entrar' : 'Criar conta';
   document.getElementById('authError').textContent = '';
 }
@@ -912,16 +2130,33 @@ async function loginGoogle() {
 }
 
 async function emailAction() {
+  const firstName = document.getElementById('authFirstName').value.trim();
+  const lastName  = document.getElementById('authLastName').value.trim();
   const email = document.getElementById('authEmail').value.trim();
   const pass  = document.getElementById('authPass').value;
   const errEl = document.getElementById('authError');
   errEl.textContent = '';
+  if (currentTab === 'criar' && (!firstName || !lastName)) {
+    errEl.textContent = 'Preencha nome e sobrenome.';
+    return;
+  }
   if (!email || !pass) { errEl.textContent = 'Preencha e-mail e senha.'; return; }
   try {
     if (currentTab === 'entrar') {
       await auth.signInWithEmailAndPassword(email, pass);
     } else {
-      await auth.createUserWithEmailAndPassword(email, pass);
+      const cred = await auth.createUserWithEmailAndPassword(email, pass);
+      const displayName = joinFullName(firstName, lastName);
+      await cred.user.updateProfile({ displayName });
+      await db.collection('users').doc(cred.user.uid).set({
+        email,
+        firstName,
+        lastName,
+        displayName,
+        photoURL: '',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        lastLoginAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
     }
   } catch(e) {
     const msgs = {
@@ -1017,8 +2252,15 @@ try {
 } catch(e) {
   initState();
 }
+try {
+  loadDupes();
+} catch(e) {
+  initDupes();
+}
 buildUI();
 buildNav();
+updateAllBadges();
+updateStats();
 applyFilter();
 initFirebase();
 window.addEventListener('beforeunload', persist);
