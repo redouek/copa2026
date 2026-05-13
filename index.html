@@ -768,6 +768,18 @@ body.view-line .fwc-sub .stickers-wrap { grid-template-columns: repeat(11, minma
   </div>
 </div>
 
+<div id="confirmMissingModal" class="modal-overlay">
+  <div class="modal-box" style="max-width:340px;text-align:center">
+    <div style="font-size:40px;margin-bottom:10px">⚠️</div>
+    <h2 style="font-size:17px;margin-bottom:10px">Marcar como Faltando?</h2>
+    <p id="confirmMissingText" style="font-size:14px;color:#666;line-height:1.6;margin-bottom:20px"></p>
+    <div class="modal-row">
+      <button class="btn btn-red" onclick="confirmMarkMissing()">Sim, marcar como Faltando</button>
+      <button class="btn btn-gray" onclick="closeConfirmMissing()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <div id="confirmDeleteModal" class="modal-overlay">
   <div class="modal-box">
     <h2>Excluir usuário?</h2>
@@ -1073,6 +1085,30 @@ function closeStepper() {
   if (outsideStepperHandler) { document.removeEventListener('click', outsideStepperHandler); outsideStepperHandler = null; }
   activeStepperN = null;
 }
+let confirmMissingN = null;
+function showConfirmMissing(n) {
+  confirmMissingN = n;
+  const label = numToLabel(n);
+  document.getElementById('confirmMissingText').innerHTML =
+    `A figurinha <strong>${label}</strong> será marcada como <strong>Faltando</strong> e removida do seu álbum.`;
+  document.getElementById('confirmMissingModal').classList.add('open');
+}
+function confirmMarkMissing() {
+  const n = confirmMissingN;
+  closeConfirmMissing();
+  if (n === null) return;
+  state[n] = true;
+  const el = document.getElementById('c' + n);
+  if (el) { el.className = 'chip missing'; el.style.display = showMissing ? '' : 'none'; }
+  updateStats();
+  persist();
+  scheduleSync();
+}
+function closeConfirmMissing() {
+  document.getElementById('confirmMissingModal').classList.remove('open');
+  confirmMissingN = null;
+}
+
 function stepPlus() {
   if (activeStepperN === null) return;
   dupes[activeStepperN]++;
@@ -1093,16 +1129,9 @@ function stepMinus() {
     persistDupes();
     scheduleSync();
   } else {
-    // 0 duplicates → pede confirmação antes de marcar como faltando
-    const label = numToLabel(n);
-    if (!confirm(`Marcar "${label}" como Faltando?\n\nIsso vai remover a figurinha do seu álbum.`)) return;
-    state[n] = true;
-    const el = document.getElementById('c' + n);
-    if (el) { el.className = 'chip missing'; el.style.display = showMissing ? '' : 'none'; }
+    // 0 duplicates → fecha stepper e abre modal de confirmação
     closeStepper();
-    updateStats();
-    persist();
-    scheduleSync();
+    showConfirmMissing(n);
   }
 }
 function stepZero() {
