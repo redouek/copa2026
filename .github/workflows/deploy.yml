@@ -23,13 +23,13 @@ jobs:
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ALBUM_COPA_26 }}
 
-      - name: Deploy Firestore rules via Python SDK
+      - name: Deploy Firestore rules via REST API
         run: |
-          pip install google-api-python-client google-auth -q
+          pip install google-auth requests -q
           python3 << 'PYEOF'
-          import os
-          from googleapiclient.discovery import build
+          import os, json, requests
           from google.oauth2 import service_account
+          from google.auth.transport.requests import Request as AuthRequest
 
           creds = service_account.Credentials.from_service_account_file(
               os.environ['GOOGLE_APPLICATION_CREDENTIALS'],
@@ -38,26 +38,35 @@ jobs:
                   'https://www.googleapis.com/auth/cloud-platform'
               ]
           )
-          svc = build('firebaserules', 'v1', credentials=creds, cache_discovery=False)
+          creds.refresh(AuthRequest())
+          token = creds.token
 
           with open('firestore.rules') as f:
               content = f.read()
 
-          ruleset = svc.projects().rulesets().create(
-              name='projects/album-copa-26',
-              body={'source': {'files': [{'name': 'firestore.rules', 'content': content}]}}
-          ).execute()
-          print(f"Ruleset criado: {ruleset['name']}")
+          project = 'album-copa-26'
+          base = f'https://firebaserules.googleapis.com/v1/projects/{project}'
+          hdrs = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}
 
-          # PATCH espera UpdateReleaseRequest: { release: Release, updateMask }
-          release = svc.projects().releases().patch(
-              name='projects/album-copa-26/releases/cloud.firestore',
-              body={
-                  'release': {'rulesetName': ruleset['name']},
-                  'updateMask': 'rulesetName'
-              }
-          ).execute()
-          print(f"Release atualizado: {release['name']}")
+          # Cria ruleset
+          r = requests.post(f'{base}/rulesets', headers=hdrs,
+              data=json.dumps({'source': {'files': [{'name': 'firestore.rules', 'content': content}]}}))
+          r.raise_for_status()
+          ruleset_name = r.json()['name']
+          print(f'Ruleset criado: {ruleset_name}')
 
-          print("Firestore rules implantadas com sucesso!")
+          # Atualiza release (updateMask como query param, body = Release resource)
+          r = requests.patch(
+              f'{base}/releases/cloud.firestore',
+              headers=hdrs,
+              params={'updateMask': 'rulesetName'},
+              data=json.dumps({
+                  'name': f'projects/{project}/releases/cloud.firestore',
+                  'rulesetName': ruleset_name
+              })
+          )
+          print(f'PATCH {r.status_code}: {r.text}')
+          r.raise_for_status()
+          print(f'Release atualizado: {r.json()["name"]}')
+          print('Firestore rules implantadas com sucesso!')
           PYEOF
