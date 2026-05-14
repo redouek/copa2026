@@ -1532,31 +1532,34 @@ function printDupes() {
   closeDupesPanel();
 }
 
-// FWC: 9 figurinhas de início (n=1-9) + 11 do final (n=970-980) = 20 total
+// FWC: 20 figurinhas — divididas em 4 colunas de 5 para manter consistência com os grupos
 const _FWC_ITEMS = [
-  ...[...Array(9)].map((_,i) => ({ n: i+1,     pos: String(i).padStart(2,'0') })),
-  ...[...Array(11)].map((_,i) => ({ n: 970+i,   pos: String(i+9).padStart(2,'0') }))
+  ...[...Array(9)].map((_,i) => ({ n: i+1,   pos: String(i).padStart(2,'0') })),
+  ...[...Array(11)].map((_,i) => ({ n: 970+i, pos: String(i+9).padStart(2,'0') }))
+];
+const _FWC_COLS = [
+  { label: '00–04', items: _FWC_ITEMS.slice(0, 5)  },
+  { label: '05–09', items: _FWC_ITEMS.slice(5, 10) },
+  { label: '10–14', items: _FWC_ITEMS.slice(10, 15) },
+  { label: '15–19', items: _FWC_ITEMS.slice(15, 20) },
 ];
 
-// Grid fixo 4×5 por time: sempre 20 slots, ativos ou vazios
+// Grid fixo por time: 4 linhas × 5 colunas (20 slots); FWC usa 1 linha × 5 colunas
 function _compactGroupsHTML(filterFn, makeChipFn) {
-  function renderGrid(items20) {
-    return `<div class="cg-grid">${items20.map(({pos, n}) =>
+  function renderSlots(items) {
+    return items.map(({pos, n}) =>
       filterFn(n)
         ? `<span class="cg-slot">${makeChipFn(pos, n)}</span>`
         : `<span class="cg-slot cg-empty"></span>`
-    ).join('')}</div>`;
+    ).join('');
   }
 
   const fwcAny = _FWC_ITEMS.some(({n}) => filterFn(n));
-  const fwcHtml = fwcAny
-    ? `<div class="cg-block"><div class="cg-title">★ FWC</div>
-        <table class="cg-table"><thead><tr><th>Início (00–08)</th><th>Final (09–19)</th></tr></thead>
-        <tbody><tr>
-          <td>${renderGrid(_FWC_ITEMS.slice(0,9).concat(Array(11).fill({pos:'',n:-1})))}</td>
-          <td>${renderGrid(Array(9).fill({pos:'',n:-1}).concat(_FWC_ITEMS.slice(9)))}</td>
-        </tr></tbody></table></div>`
-    : '';
+  const fwcHtml = fwcAny ? `<div class="cg-block">
+    <div class="cg-title">★ FWC — Especiais</div>
+    <table class="cg-table"><thead><tr>${_FWC_COLS.map(c=>`<th>${c.label}</th>`).join('')}</tr></thead>
+    <tbody><tr>${_FWC_COLS.map(c=>`<td><div class="cg-grid">${renderSlots(c.items)}</div></td>`).join('')}</tr></tbody>
+    </table></div>` : '';
 
   function buildGroup(g) {
     const teams = TEAMS.filter(t => t.group === g);
@@ -1567,7 +1570,7 @@ function _compactGroupsHTML(filterFn, makeChipFn) {
     if (!hasAny) return '';
     const headers = teams.map(t => `<th>${t.code}</th>`).join('');
     const cells = teams.map(t =>
-      `<td>${renderGrid([...Array(20)].map((_,i) => ({pos: i+1, n: t.start+i})))}</td>`
+      `<td><div class="cg-grid">${renderSlots([...Array(20)].map((_,i)=>({pos:i+1, n:t.start+i})))}</div></td>`
     ).join('');
     return `<div class="cg-block"><div class="cg-title">Grupo ${g}</div>
       <table class="cg-table"><thead><tr>${headers}</tr></thead>
@@ -1581,7 +1584,7 @@ function _compactGroupsHTML(filterFn, makeChipFn) {
 
 function _compactPrintPage(titleTxt, subtitleTxt, contentHtml, chipBorder, chipBg) {
   const css = `
-    @page { size: A4 portrait; margin: 6mm; }
+    @page { size: A4 landscape; margin: 6mm; }
     * { box-sizing: border-box; }
     body { font-family: Arial, sans-serif; margin: 0; color: #111; }
     .pg-header { display: flex; justify-content: space-between; align-items: baseline;
