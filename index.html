@@ -1547,11 +1547,10 @@ const _FWC_COLS = [
 // Grid fixo por time: 4 linhas × 5 colunas (20 slots); FWC usa 1 linha × 5 colunas
 function _compactGroupsHTML(filterFn, makeChipFn) {
   function renderSlots(items) {
-    return items.map(({pos, n}) =>
-      filterFn(n)
-        ? `<span class="cg-slot">${makeChipFn(pos, n)}</span>`
-        : `<span class="cg-slot cg-empty"></span>`
-    ).join('');
+    return items
+      .filter(({n}) => filterFn(n))
+      .map(({pos, n}) => `<span class="cg-slot">${makeChipFn(pos, n)}</span>`)
+      .join('');
   }
 
   const fwcAny = _FWC_ITEMS.some(({n}) => filterFn(n));
