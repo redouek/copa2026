@@ -1532,19 +1532,38 @@ function printDupes() {
   closeDupesPanel();
 }
 
-function _compactPrintCSS(chipColor) {
-  return `
-    body { font-family: Arial, sans-serif; font-size: 11px; color: #111; margin: 12px; }
-    .cp-header { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid #222; padding-bottom: 5px; margin-bottom: 10px; }
-    .cp-title { font-size: 14px; font-weight: 700; }
-    .cp-sub { font-size: 10px; color: #555; }
-    .cp-group { margin-bottom: 10px; page-break-inside: avoid; }
-    .cp-group-hdr { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: #555; margin-bottom: 4px; border-bottom: 1px solid #ddd; padding-bottom: 2px; }
-    .cp-team-row { display: flex; align-items: baseline; gap: 6px; margin-bottom: 4px; }
-    .cp-team { font-size: 10px; font-weight: 700; min-width: 120px; color: #222; flex-shrink: 0; }
-    .cp-chips { display: flex; flex-wrap: wrap; gap: 3px; }
-    .cp-chip { font-size: 11px; font-weight: 700; border: 1px solid ${chipColor.border}; background: ${chipColor.bg}; border-radius: 3px; padding: 2px 6px; min-width: 22px; text-align: center; }
+function _compactPrintDoc(title, headerHtml, bodyHtml, extraCss) {
+  const base = `
+    @page { size: A4 portrait; margin: 6mm; }
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; font-size: 9px; color: #111; margin: 0; }
+    .cp-header { display: flex; justify-content: space-between; align-items: baseline;
+      border-bottom: 2px solid #222; padding-bottom: 4px; margin-bottom: 8px; }
+    .cp-title { font-size: 13px; font-weight: 700; }
+    .cp-sub { font-size: 8px; color: #555; }
+    .cp-body { columns: 2; column-gap: 10px; }
+    .cp-group { break-inside: avoid; margin-bottom: 6px; }
+    .cp-group-hdr { font-size: 8px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: .05em; color: #777; border-bottom: 1px solid #ddd;
+      padding-bottom: 1px; margin-bottom: 2px; }
+    .cp-team-row { display: flex; align-items: center; gap: 3px; margin-bottom: 2px; }
+    .cp-team { font-size: 8px; font-weight: 800; width: 28px; flex-shrink: 0;
+      color: #333; text-transform: uppercase; letter-spacing: .02em; }
+    .cp-chips { display: flex; flex-wrap: wrap; gap: 2px; }
+    .cp-chip { font-size: 10px; font-weight: 700; border-radius: 3px;
+      padding: 2px 5px; min-width: 18px; text-align: center; display: inline-block; }
+    .cp-wrap { position: relative; display: inline-block; }
+    .cp-badge { position: absolute; top: -5px; right: -5px;
+      background: #e53935; color: #fff; border-radius: 50%;
+      font-size: 6.5px; font-weight: 900; width: 12px; height: 12px;
+      display: flex; align-items: center; justify-content: center;
+      border: 1px solid #fff; line-height: 1; }
   `;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title>
+    <style>${base}${extraCss}</style></head><body>
+    <div class="cp-header">${headerHtml}</div>
+    <div class="cp-body">${bodyHtml}</div>
+  </body></html>`;
 }
 
 function printMissingCompact() {
@@ -1553,19 +1572,17 @@ function printMissingCompact() {
 
   const date = new Date().toLocaleDateString('pt-BR');
   let totalMissing = 0;
-  let sections = '';
+  let bodyHtml = '';
 
-  // FWC
   const fwcChips = [];
-  for (let n = 1; n <= 9; n++) {
+  for (let n = 1; n <= 9; n++)
     if (state[n]) { fwcChips.push(String(n - 1).padStart(2, '0')); totalMissing++; }
-  }
-  for (let n = 970; n <= 980; n++) {
+  for (let n = 970; n <= 980; n++)
     if (state[n]) { fwcChips.push(String(n - 970 + 9).padStart(2, '0')); totalMissing++; }
-  }
   if (fwcChips.length) {
     const chips = fwcChips.map(p => `<span class="cp-chip">${p}</span>`).join('');
-    sections += `<div class="cp-group"><div class="cp-group-hdr">★ FWC</div><div class="cp-team-row"><div class="cp-team">Especiais FWC</div><div class="cp-chips">${chips}</div></div></div>`;
+    bodyHtml += `<div class="cp-group"><div class="cp-group-hdr">★ FWC</div>
+      <div class="cp-team-row"><div class="cp-team">FWC</div><div class="cp-chips">${chips}</div></div></div>`;
   }
 
   for (const g of GROUPS) {
@@ -1579,15 +1596,16 @@ function printMissingCompact() {
       }
       if (!positions.length) continue;
       const chips = positions.map(p => `<span class="cp-chip">${p}</span>`).join('');
-      groupHtml += `<div class="cp-team-row"><div class="cp-team">${team.name} (${team.code})</div><div class="cp-chips">${chips}</div></div>`;
+      groupHtml += `<div class="cp-team-row"><div class="cp-team">${team.code}</div><div class="cp-chips">${chips}</div></div>`;
     }
-    if (groupHtml) sections += `<div class="cp-group"><div class="cp-group-hdr">Grupo ${g}</div>${groupHtml}</div>`;
+    if (groupHtml) bodyHtml += `<div class="cp-group"><div class="cp-group-hdr">Grupo ${g}</div>${groupHtml}</div>`;
   }
 
-  if (!sections) sections = '<p style="color:#888;padding:20px 0">Nenhuma figurinha faltante!</p>';
-  const html = `<div class="cp-header"><strong class="cp-title">Copa FIFA 2026 — Figurinhas Faltantes</strong><span class="cp-sub">${date} · ${totalMissing} faltantes</span></div>${sections}`;
+  if (!bodyHtml) bodyHtml = '<p style="color:#888">Nenhuma figurinha faltante!</p>';
 
-  pw.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Faltantes (Compacto)</title><style>${_compactPrintCSS({ border: '#c00', bg: '#fff3f3' })}</style></head><body>${html}</body></html>`);
+  const css = `.cp-chip { border: 1px solid #c00; background: #fff3f3; }`;
+  const hdr = `<strong class="cp-title">Copa FIFA 2026 — Faltantes</strong><span class="cp-sub">${date} · ${totalMissing} faltantes</span>`;
+  pw.document.write(_compactPrintDoc('Faltantes (Compacto)', hdr, bodyHtml, css));
   pw.document.close();
   pw.focus();
   pw.print();
@@ -1601,15 +1619,20 @@ function printDupesCompact() {
   let totalUnique = 0;
   for (let n = 1; n <= 980; n++) if (dupes[n] > 0) totalUnique++;
   const date = new Date().toLocaleDateString('pt-BR');
-  let sections = '';
+  let bodyHtml = '';
 
-  // FWC
+  function dupeChip(pos, count) {
+    const badge = count > 1 ? `<span class="cp-badge">${count}</span>` : '';
+    return `<span class="cp-wrap"><span class="cp-chip">${pos}</span>${badge}</span>`;
+  }
+
   const fwcItems = [];
   for (let n = 1; n <= 9; n++) if (dupes[n] > 0) fwcItems.push({ pos: String(n - 1).padStart(2, '0'), count: dupes[n] });
   for (let n = 970; n <= 980; n++) if (dupes[n] > 0) fwcItems.push({ pos: String(n - 970 + 9).padStart(2, '0'), count: dupes[n] });
   if (fwcItems.length) {
-    const chips = fwcItems.map(i => `<span class="cp-chip">${i.pos} ×${i.count}</span>`).join('');
-    sections += `<div class="cp-group"><div class="cp-group-hdr">★ FWC</div><div class="cp-team-row"><div class="cp-team">Especiais FWC</div><div class="cp-chips">${chips}</div></div></div>`;
+    const chips = fwcItems.map(i => dupeChip(i.pos, i.count)).join('');
+    bodyHtml += `<div class="cp-group"><div class="cp-group-hdr">★ FWC</div>
+      <div class="cp-team-row"><div class="cp-team">FWC</div><div class="cp-chips">${chips}</div></div></div>`;
   }
 
   for (const g of GROUPS) {
@@ -1622,16 +1645,17 @@ function printDupesCompact() {
         if (dupes[n] > 0) items.push({ pos, count: dupes[n] });
       }
       if (!items.length) continue;
-      const chips = items.map(i => `<span class="cp-chip">${i.pos} ×${i.count}</span>`).join('');
-      groupHtml += `<div class="cp-team-row"><div class="cp-team">${team.name} (${team.code})</div><div class="cp-chips">${chips}</div></div>`;
+      const chips = items.map(i => dupeChip(i.pos, i.count)).join('');
+      groupHtml += `<div class="cp-team-row"><div class="cp-team">${team.code}</div><div class="cp-chips">${chips}</div></div>`;
     }
-    if (groupHtml) sections += `<div class="cp-group"><div class="cp-group-hdr">Grupo ${g}</div>${groupHtml}</div>`;
+    if (groupHtml) bodyHtml += `<div class="cp-group"><div class="cp-group-hdr">Grupo ${g}</div>${groupHtml}</div>`;
   }
 
-  if (!totalUnique) sections = '<p style="color:#888;padding:20px 0">Nenhuma figurinha repetida registrada.</p>';
-  const html = `<div class="cp-header"><strong class="cp-title">Copa FIFA 2026 — Figurinhas Repetidas</strong><span class="cp-sub">${date} · ${totalUnique} tipos · ${total} cópias extras</span></div>${sections}`;
+  if (!totalUnique) bodyHtml = '<p style="color:#888">Nenhuma figurinha repetida registrada.</p>';
 
-  pw.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Repetidas (Compacto)</title><style>${_compactPrintCSS({ border: '#ffa000', bg: '#fff8e1' })}</style></head><body>${html}</body></html>`);
+  const css = `.cp-chip { border: 1px solid #ffa000; background: #fff8e1; }`;
+  const hdr = `<strong class="cp-title">Copa FIFA 2026 — Repetidas</strong><span class="cp-sub">${date} · ${totalUnique} tipos · ${total} cópias extras</span>`;
+  pw.document.write(_compactPrintDoc('Repetidas (Compacto)', hdr, bodyHtml, css));
   pw.document.close();
   pw.focus();
   pw.print();
