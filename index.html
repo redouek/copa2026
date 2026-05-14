@@ -1644,9 +1644,11 @@ function _compactGroupsHTML(filterFn, makeChipFn) {
 
 function _compactPrintPage(titleTxt, subtitleTxt, contentHtml, chipBorder, chipBg) {
   const css = `
-    @page { size: A4 landscape; margin: 6mm; }
+    @media print { @page { size: 297mm 210mm; margin: 6mm; } }
     * { box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; margin: 0; color: #111; }
+    body { font-family: Arial, sans-serif; margin: 0; color: #111;
+      min-width: 260mm;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .pg-header { display: flex; justify-content: space-between; align-items: baseline;
       border-bottom: 2px solid #222; padding-bottom: 4px; margin-bottom: 6px; }
     .pg-title { font-size: 12px; font-weight: 700; }
@@ -1677,7 +1679,9 @@ function _compactPrintPage(titleTxt, subtitleTxt, contentHtml, chipBorder, chipB
       display: flex; align-items: center; justify-content: center;
       border: 1.5px solid #fff; line-height: 1; padding: 0 2px; }
   `;
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${titleTxt}</title>
+  return `<!DOCTYPE html><html><head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>${titleTxt}</title>
     <style>${css}</style></head><body>
     <div class="pg-header">
       <strong class="pg-title">${titleTxt}</strong>
@@ -2644,6 +2648,7 @@ function switchAdminTab(tab) {
   document.getElementById('adminNavUsers').classList.toggle('active',   tab === 'users');
   document.getElementById('adminNavSponsor').classList.toggle('active', tab === 'sponsor');
   document.getElementById('adminNavPrint').classList.toggle('active',   tab === 'print');
+  if (tab === 'sponsor') loadSponsorConfig();
 }
 
 function filterAdminUsers(filter) {
@@ -2747,7 +2752,9 @@ function addSponsorSlot(slotData = {}) {
   }
   const div = document.createElement('div');
   div.innerHTML = _sponsorSlotHTML(id, slotData);
-  container.appendChild(div.firstElementChild);
+  const slot = div.firstElementChild;
+  container.appendChild(slot);
+  slot.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 function removeSponsorSlot(id) {
@@ -2856,6 +2863,32 @@ async function loadSponsorConfig() {
   }
 }
 
+const _SPONSOR_ACTIONS = {
+  '#ranking': () => showRankingPanel(),
+};
+
+function _setupSponsorLink(el, url) {
+  const action = url && _SPONSOR_ACTIONS[url];
+  if (action) {
+    el.removeAttribute('href');
+    el.removeAttribute('target');
+    el.style.cursor = 'pointer';
+    el.style.pointerEvents = '';
+    el.onclick = e => { e.preventDefault(); action(); };
+  } else if (url) {
+    el.href = url;
+    el.setAttribute('target', '_blank');
+    el.style.cursor = '';
+    el.style.pointerEvents = '';
+    el.onclick = null;
+  } else {
+    el.removeAttribute('href');
+    el.style.cursor = 'default';
+    el.style.pointerEvents = 'none';
+    el.onclick = null;
+  }
+}
+
 function applySponsorConfig(config) {
   const active = config && config.active;
   let sponsors = [];
@@ -2870,7 +2903,7 @@ function applySponsorConfig(config) {
   const logoImg  = document.getElementById('sponsorLogoImg');
   if (slot && slot.logoUrl) {
     logoImg.src = slot.logoUrl;
-    logoLink.href = slot.logoLink || '#';
+    _setupSponsorLink(logoLink, slot.logoLink || '');
     logoLink.style.display = '';
     logoImg.style.display  = 'block';
   } else {
@@ -2882,8 +2915,8 @@ function applySponsorConfig(config) {
   const bannerLink = document.getElementById('sponsorBannerLink');
   const bannerImg  = document.getElementById('sponsorBannerImg');
   if (slot && slot.bannerUrl) {
-    bannerImg.src   = slot.bannerUrl;
-    bannerLink.href = slot.bannerLink || '#';
+    bannerImg.src = slot.bannerUrl;
+    _setupSponsorLink(bannerLink, slot.bannerLink || '');
     bannerSlot.style.display = '';
   } else {
     bannerSlot.style.display = 'none';
@@ -2902,9 +2935,8 @@ function maybeShowPromo() {
   if (storageGet('copa2026_promo_dismissed_' + version) === '1') return;
   const promoImg  = document.getElementById('promoImg');
   const promoLink = document.getElementById('promoImgLink');
-  promoImg.src  = config.promoUrl;
-  promoLink.href = config.promoLink || '#';
-  promoLink.style.pointerEvents = config.promoLink ? '' : 'none';
+  promoImg.src = config.promoUrl;
+  _setupSponsorLink(promoLink, config.promoLink || '');
   document.getElementById('promoNoShow').checked = false;
   document.getElementById('promoModal').classList.add('open');
 }
