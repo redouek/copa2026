@@ -2375,6 +2375,8 @@ function previewSponsorFile(input, previewId, areaId) {
 }
 
 function compressImage(file, maxW, maxH, quality) {
+  const isPng = file.type === 'image/png';
+  const fmt   = isPng ? 'image/png' : 'image/jpeg';
   return new Promise((resolve, reject) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
@@ -2385,8 +2387,10 @@ function compressImage(file, maxW, maxH, quality) {
       if (h > maxH) { w = Math.round(w * maxH / h); h = maxH; }
       const canvas = document.createElement('canvas');
       canvas.width = w; canvas.height = h;
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      resolve(canvas.toDataURL('image/jpeg', quality));
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, w, h); // garante fundo transparente para PNG
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL(fmt, isPng ? undefined : quality));
     };
     img.onerror = reject;
     img.src = url;
@@ -2428,7 +2432,7 @@ function _sponsorSlotHTML(id, slot) {
       </div>
       <div class="sponsor-section">
         <h3>Modal promocional</h3>
-        <div class="sponsor-dim">Recomendado: 600×400px · Proporção ~3:2</div>
+        <div class="sponsor-dim">Recomendado: 600×400px · Proporção ~3:2 · Use PNG com fundo transparente para formatos personalizados (sem retângulo)</div>
         <input type="file" id="promoFile-${id}" accept="image/*" style="display:none" onchange="previewSponsorFile(this,'promoPreview-${id}','promoUploadArea-${id}')">
         <div class="upload-area" id="promoUploadArea-${id}" onclick="document.getElementById('promoFile-${id}').click()" style="height:120px;width:100%">
           <div class="upload-placeholder" id="promoPlaceholder-${id}" style="${slot.promoUrl ? 'display:none' : ''}"><div>🖼️</div><div>Modal (clique para selecionar)</div></div>
