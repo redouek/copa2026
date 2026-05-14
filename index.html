@@ -924,6 +924,7 @@ body.view-line .fwc-sub .stickers-wrap { grid-template-columns: repeat(11, minma
     <nav class="admin-nav">
       <button class="admin-nav-btn active" id="adminNavUsers"   onclick="switchAdminTab('users')">👥 Usuários</button>
       <button class="admin-nav-btn"        id="adminNavSponsor" onclick="switchAdminTab('sponsor')">🎯 Patrocínio</button>
+      <button class="admin-nav-btn"        id="adminNavPrint"   onclick="switchAdminTab('print')">🖨️ Impressão</button>
     </nav>
 
     <!-- Tab: Usuários -->
@@ -955,6 +956,19 @@ body.view-line .fwc-sub .stickers-wrap { grid-template-columns: repeat(11, minma
         <button class="btn" onclick="clearSponsorConfig()" style="padding:10px;color:#c62828">🗑️ Limpar</button>
       </div>
       <div id="sponsorSaveStatus" style="font-size:13px;color:#888;padding:4px 0"></div>
+    </div>
+
+    <!-- Tab: Impressão (admin only) -->
+    <div id="adminTabPrint" class="admin-tab drawer-body" style="display:none">
+      <p style="color:#666;font-size:13px;margin:0 0 14px">Teste os modos de impressão sem expor aos usuários.</p>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.05em">Faltantes</div>
+        <button class="btn" onclick="printMissing()" style="padding:12px;text-align:left">🖨️ Padrão (chips com código + número)</button>
+        <button class="btn btn-green" onclick="printMissingCompact()" style="padding:12px;text-align:left">🖨️ Compacto (time uma vez, só números)</button>
+        <div style="font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-top:6px">Repetidas</div>
+        <button class="btn" onclick="printDupes()" style="padding:12px;text-align:left">🖨️ Padrão (chips com código + número)</button>
+        <button class="btn btn-green" onclick="printDupesCompact()" style="padding:12px;text-align:left">🖨️ Compacto (time uma vez, só números)</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1516,6 +1530,111 @@ function printDupes() {
   pw.focus();
   pw.print();
   closeDupesPanel();
+}
+
+function _compactPrintCSS(chipColor) {
+  return `
+    body { font-family: Arial, sans-serif; font-size: 11px; color: #111; margin: 12px; }
+    .cp-header { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid #222; padding-bottom: 5px; margin-bottom: 10px; }
+    .cp-title { font-size: 14px; font-weight: 700; }
+    .cp-sub { font-size: 10px; color: #555; }
+    .cp-group { margin-bottom: 10px; page-break-inside: avoid; }
+    .cp-group-hdr { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: #555; margin-bottom: 4px; border-bottom: 1px solid #ddd; padding-bottom: 2px; }
+    .cp-team-row { display: flex; align-items: baseline; gap: 6px; margin-bottom: 4px; }
+    .cp-team { font-size: 10px; font-weight: 700; min-width: 120px; color: #222; flex-shrink: 0; }
+    .cp-chips { display: flex; flex-wrap: wrap; gap: 3px; }
+    .cp-chip { font-size: 11px; font-weight: 700; border: 1px solid ${chipColor.border}; background: ${chipColor.bg}; border-radius: 3px; padding: 2px 6px; min-width: 22px; text-align: center; }
+  `;
+}
+
+function printMissingCompact() {
+  const pw = window.open('', '_blank');
+  if (!pw) { alert('Permita popups para imprimir.'); return; }
+
+  const date = new Date().toLocaleDateString('pt-BR');
+  let totalMissing = 0;
+  let sections = '';
+
+  // FWC
+  const fwcChips = [];
+  for (let n = 1; n <= 9; n++) {
+    if (state[n]) { fwcChips.push(String(n - 1).padStart(2, '0')); totalMissing++; }
+  }
+  for (let n = 970; n <= 980; n++) {
+    if (state[n]) { fwcChips.push(String(n - 970 + 9).padStart(2, '0')); totalMissing++; }
+  }
+  if (fwcChips.length) {
+    const chips = fwcChips.map(p => `<span class="cp-chip">${p}</span>`).join('');
+    sections += `<div class="cp-group"><div class="cp-group-hdr">★ FWC</div><div class="cp-team-row"><div class="cp-team">Especiais FWC</div><div class="cp-chips">${chips}</div></div></div>`;
+  }
+
+  for (const g of GROUPS) {
+    const groupTeams = TEAMS.filter(t => t.group === g);
+    let groupHtml = '';
+    for (const team of groupTeams) {
+      const positions = [];
+      for (let pos = 1; pos <= 20; pos++) {
+        const n = team.start + pos - 1;
+        if (state[n]) { positions.push(pos); totalMissing++; }
+      }
+      if (!positions.length) continue;
+      const chips = positions.map(p => `<span class="cp-chip">${p}</span>`).join('');
+      groupHtml += `<div class="cp-team-row"><div class="cp-team">${team.name} (${team.code})</div><div class="cp-chips">${chips}</div></div>`;
+    }
+    if (groupHtml) sections += `<div class="cp-group"><div class="cp-group-hdr">Grupo ${g}</div>${groupHtml}</div>`;
+  }
+
+  if (!sections) sections = '<p style="color:#888;padding:20px 0">Nenhuma figurinha faltante!</p>';
+  const html = `<div class="cp-header"><strong class="cp-title">Copa FIFA 2026 — Figurinhas Faltantes</strong><span class="cp-sub">${date} · ${totalMissing} faltantes</span></div>${sections}`;
+
+  pw.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Faltantes (Compacto)</title><style>${_compactPrintCSS({ border: '#c00', bg: '#fff3f3' })}</style></head><body>${html}</body></html>`);
+  pw.document.close();
+  pw.focus();
+  pw.print();
+}
+
+function printDupesCompact() {
+  const pw = window.open('', '_blank');
+  if (!pw) { alert('Permita popups para imprimir.'); return; }
+
+  const total = countTotalDupes();
+  let totalUnique = 0;
+  for (let n = 1; n <= 980; n++) if (dupes[n] > 0) totalUnique++;
+  const date = new Date().toLocaleDateString('pt-BR');
+  let sections = '';
+
+  // FWC
+  const fwcItems = [];
+  for (let n = 1; n <= 9; n++) if (dupes[n] > 0) fwcItems.push({ pos: String(n - 1).padStart(2, '0'), count: dupes[n] });
+  for (let n = 970; n <= 980; n++) if (dupes[n] > 0) fwcItems.push({ pos: String(n - 970 + 9).padStart(2, '0'), count: dupes[n] });
+  if (fwcItems.length) {
+    const chips = fwcItems.map(i => `<span class="cp-chip">${i.pos} ×${i.count}</span>`).join('');
+    sections += `<div class="cp-group"><div class="cp-group-hdr">★ FWC</div><div class="cp-team-row"><div class="cp-team">Especiais FWC</div><div class="cp-chips">${chips}</div></div></div>`;
+  }
+
+  for (const g of GROUPS) {
+    const groupTeams = TEAMS.filter(t => t.group === g);
+    let groupHtml = '';
+    for (const team of groupTeams) {
+      const items = [];
+      for (let pos = 1; pos <= 20; pos++) {
+        const n = team.start + pos - 1;
+        if (dupes[n] > 0) items.push({ pos, count: dupes[n] });
+      }
+      if (!items.length) continue;
+      const chips = items.map(i => `<span class="cp-chip">${i.pos} ×${i.count}</span>`).join('');
+      groupHtml += `<div class="cp-team-row"><div class="cp-team">${team.name} (${team.code})</div><div class="cp-chips">${chips}</div></div>`;
+    }
+    if (groupHtml) sections += `<div class="cp-group"><div class="cp-group-hdr">Grupo ${g}</div>${groupHtml}</div>`;
+  }
+
+  if (!totalUnique) sections = '<p style="color:#888;padding:20px 0">Nenhuma figurinha repetida registrada.</p>';
+  const html = `<div class="cp-header"><strong class="cp-title">Copa FIFA 2026 — Figurinhas Repetidas</strong><span class="cp-sub">${date} · ${totalUnique} tipos · ${total} cópias extras</span></div>${sections}`;
+
+  pw.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Repetidas (Compacto)</title><style>${_compactPrintCSS({ border: '#ffa000', bg: '#fff8e1' })}</style></head><body>${html}</body></html>`);
+  pw.document.close();
+  pw.focus();
+  pw.print();
 }
 
 // ── Modal Novidade ──
@@ -2369,8 +2488,10 @@ function closeAdminModal() { document.getElementById('adminModal').classList.rem
 function switchAdminTab(tab) {
   document.getElementById('adminTabUsers').style.display   = tab === 'users'   ? '' : 'none';
   document.getElementById('adminTabSponsor').style.display = tab === 'sponsor' ? '' : 'none';
+  document.getElementById('adminTabPrint').style.display   = tab === 'print'   ? '' : 'none';
   document.getElementById('adminNavUsers').classList.toggle('active',   tab === 'users');
   document.getElementById('adminNavSponsor').classList.toggle('active', tab === 'sponsor');
+  document.getElementById('adminNavPrint').classList.toggle('active',   tab === 'print');
 }
 
 function filterAdminUsers(filter) {
