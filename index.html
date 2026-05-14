@@ -964,10 +964,10 @@ body.view-line .fwc-sub .stickers-wrap { grid-template-columns: repeat(11, minma
       <div style="display:flex;flex-direction:column;gap:10px">
         <div style="font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.05em">Faltantes</div>
         <button class="btn" onclick="printMissing()" style="padding:12px;text-align:left">🖨️ Padrão (chips com código + número)</button>
-        <button class="btn btn-green" onclick="printMissingCompact()" style="padding:12px;text-align:left">🖨️ Compacto (time uma vez, só números)</button>
+        <button class="btn btn-green" onclick="printMissingCompact(true)" style="padding:12px;text-align:left">🖨️ Compacto — pior caso (todos os 980)</button>
         <div style="font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-top:6px">Repetidas</div>
         <button class="btn" onclick="printDupes()" style="padding:12px;text-align:left">🖨️ Padrão (chips com código + número)</button>
-        <button class="btn btn-green" onclick="printDupesCompact()" style="padding:12px;text-align:left">🖨️ Compacto (time uma vez, só números)</button>
+        <button class="btn btn-green" onclick="printDupesCompact(true)" style="padding:12px;text-align:left">🖨️ Compacto — pior caso (todos os 980)</button>
       </div>
     </div>
   </div>
@@ -1532,41 +1532,50 @@ function printDupes() {
   closeDupesPanel();
 }
 
-// Monta o layout de tabela por grupo: cada grupo = tabela com times como colunas
-function _compactGroupsHTML(filterFn, chipHtmlFn) {
-  function buildGroupBlock(g) {
-    const groupTeams = TEAMS.filter(t => t.group === g);
-    const hasAny = groupTeams.some(team => {
-      for (let pos = 1; pos <= 20; pos++) if (filterFn(team.start + pos - 1)) return true;
+// FWC: 9 figurinhas de início (n=1-9) + 11 do final (n=970-980) = 20 total
+const _FWC_ITEMS = [
+  ...[...Array(9)].map((_,i) => ({ n: i+1,     pos: String(i).padStart(2,'0') })),
+  ...[...Array(11)].map((_,i) => ({ n: 970+i,   pos: String(i+9).padStart(2,'0') }))
+];
+
+// Grid fixo 4×5 por time: sempre 20 slots, ativos ou vazios
+function _compactGroupsHTML(filterFn, makeChipFn) {
+  function renderGrid(items20) {
+    return `<div class="cg-grid">${items20.map(({pos, n}) =>
+      filterFn(n)
+        ? `<span class="cg-slot">${makeChipFn(pos, n)}</span>`
+        : `<span class="cg-slot cg-empty"></span>`
+    ).join('')}</div>`;
+  }
+
+  const fwcAny = _FWC_ITEMS.some(({n}) => filterFn(n));
+  const fwcHtml = fwcAny
+    ? `<div class="cg-block"><div class="cg-title">★ FWC</div>
+        <table class="cg-table"><thead><tr><th>Início (00–08)</th><th>Final (09–19)</th></tr></thead>
+        <tbody><tr>
+          <td>${renderGrid(_FWC_ITEMS.slice(0,9).concat(Array(11).fill({pos:'',n:-1})))}</td>
+          <td>${renderGrid(Array(9).fill({pos:'',n:-1}).concat(_FWC_ITEMS.slice(9)))}</td>
+        </tr></tbody></table></div>`
+    : '';
+
+  function buildGroup(g) {
+    const teams = TEAMS.filter(t => t.group === g);
+    const hasAny = teams.some(t => {
+      for (let i = 0; i < 20; i++) if (filterFn(t.start + i)) return true;
       return false;
     });
     if (!hasAny) return '';
-    const headers = groupTeams.map(t => `<th>${t.code}</th>`).join('');
-    const cells = groupTeams.map(team => {
-      const chips = [];
-      for (let pos = 1; pos <= 20; pos++) {
-        const n = team.start + pos - 1;
-        if (filterFn(n)) chips.push(chipHtmlFn(pos, n));
-      }
-      return `<td><div class="cg-chips">${chips.join('')}</div></td>`;
-    }).join('');
-    return `<div class="cg-block">
-      <div class="cg-title">Grupo ${g}</div>
-      <table class="cg-table"><thead><tr>${headers}</tr></thead><tbody><tr>${cells}</tr></tbody></table>
-    </div>`;
+    const headers = teams.map(t => `<th>${t.code}</th>`).join('');
+    const cells = teams.map(t =>
+      `<td>${renderGrid([...Array(20)].map((_,i) => ({pos: i+1, n: t.start+i})))}</td>`
+    ).join('');
+    return `<div class="cg-block"><div class="cg-title">Grupo ${g}</div>
+      <table class="cg-table"><thead><tr>${headers}</tr></thead>
+      <tbody><tr>${cells}</tr></tbody></table></div>`;
   }
 
-  const fwcChips = [];
-  for (let n = 1; n <= 9; n++)
-    if (filterFn(n)) fwcChips.push(chipHtmlFn(String(n - 1).padStart(2, '0'), n));
-  for (let n = 970; n <= 980; n++)
-    if (filterFn(n)) fwcChips.push(chipHtmlFn(String(n - 970 + 9).padStart(2, '0'), n));
-  const fwcHtml = fwcChips.length
-    ? `<div class="cg-block"><div class="cg-title">★ FWC</div><div class="cg-chips cg-fwc-chips">${fwcChips.join('')}</div></div>`
-    : '';
-
-  const left  = fwcHtml + ['A','B','C','D'].map(buildGroupBlock).join('');
-  const right  = ['E','F','G','H'].map(buildGroupBlock).join('');
+  const left  = fwcHtml + ['A','B','C','D'].map(buildGroup).join('');
+  const right = ['E','F','G','H'].map(buildGroup).join('');
   return `<div class="page-cols"><div class="page-col">${left}</div><div class="page-col">${right}</div></div>`;
 }
 
@@ -1580,28 +1589,29 @@ function _compactPrintPage(titleTxt, subtitleTxt, contentHtml, chipBorder, chipB
     .pg-title { font-size: 12px; font-weight: 700; }
     .pg-sub { font-size: 8px; color: #555; }
     .page-cols { display: flex; gap: 8px; align-items: flex-start; }
-    .page-col { flex: 1; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+    .page-col { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
     .cg-block { break-inside: avoid; }
     .cg-title { font-size: 7px; font-weight: 900; text-transform: uppercase;
-      letter-spacing: .07em; color: #fff; background: #666;
-      padding: 2px 4px; margin-bottom: 0; }
+      letter-spacing: .06em; color: #fff; background: #666; padding: 2px 4px; }
     .cg-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
     .cg-table th { font-size: 9px; font-weight: 800; text-align: center;
       padding: 2px 1px; border: 1px solid #aaa; background: #ececec; }
-    .cg-table td { vertical-align: top; border: 1px solid #ddd; padding: 3px 2px; }
-    .cg-chips { display: flex; flex-wrap: wrap; gap: 3px; }
-    .cg-fwc-chips { padding: 3px 2px; }
-    .cg-wrap { position: relative; display: inline-flex; }
-    .cg-chip { font-size: 11px; font-weight: 800;
-      border: 1.5px solid ${chipBorder}; background: ${chipBg};
-      border-radius: 50%; min-width: 22px; height: 22px;
-      display: inline-flex; align-items: center; justify-content: center;
-      padding: 0 3px; line-height: 1; }
-    .cg-badge { position: absolute; top: -5px; right: -5px;
+    .cg-table td { vertical-align: top; border: 1px solid #ddd; padding: 2px; }
+    .cg-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; }
+    .cg-slot { aspect-ratio: 1; display: flex; align-items: center;
+      justify-content: center; position: relative; }
+    .cg-empty { /* takes grid space, invisible */ }
+    .cg-chip { width: 100%; height: 100%; display: flex; align-items: center;
+      justify-content: center; font-size: 10px; font-weight: 800; border-radius: 50%;
+      border: 1.5px solid ${chipBorder}; background: ${chipBg}; line-height: 1; }
+    .cg-wrap { width: 100%; height: 100%; position: relative;
+      display: flex; align-items: center; justify-content: center; }
+    .cg-wrap .cg-chip { width: 100%; height: 100%; }
+    .cg-badge { position: absolute; top: -3px; right: -3px;
       background: #e53935; color: #fff; border-radius: 50%;
-      font-size: 6px; font-weight: 900; min-width: 12px; height: 12px;
+      font-size: 6px; font-weight: 900; min-width: 11px; height: 11px;
       display: flex; align-items: center; justify-content: center;
-      border: 1.5px solid #fff; padding: 0 1px; line-height: 1; }
+      border: 1.5px solid #fff; line-height: 1; padding: 0 1px; }
   `;
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${titleTxt}</title>
     <style>${css}</style></head><body>
@@ -1613,30 +1623,26 @@ function _compactPrintPage(titleTxt, subtitleTxt, contentHtml, chipBorder, chipB
   </body></html>`;
 }
 
-function printMissingCompact() {
+// testMode=true → mostra todos os 980 stickers (pior caso, para admin ver o layout)
+function printMissingCompact(testMode = false) {
   const pw = window.open('', '_blank');
   if (!pw) { alert('Permita popups para imprimir.'); return; }
 
   let total = 0;
   for (let n = 1; n <= 980; n++) if (state[n]) total++;
   const date = new Date().toLocaleDateString('pt-BR');
+  const filterFn = testMode ? n => n > 0 : n => !!state[n];
 
-  const content = _compactGroupsHTML(
-    n => !!state[n],
-    pos => `<span class="cg-chip">${pos}</span>`
-  );
-  if (!content.trim().replace(/<[^>]+>/g,'').trim()) {
-    pw.document.write('<p>Nenhuma figurinha faltante!</p>');
-  } else {
-    pw.document.write(_compactPrintPage(
-      'Copa FIFA 2026 — Faltantes', `${date} · ${total} faltantes`,
-      content, '#c00', '#fff3f3'
-    ));
-  }
+  const content = _compactGroupsHTML(filterFn, pos => `<span class="cg-chip">${pos}</span>`);
+  const subtitle = testMode
+    ? `${date} · simulação pior caso (980 figurinhas)`
+    : `${date} · ${total} faltantes`;
+  pw.document.write(_compactPrintPage('Copa FIFA 2026 — Faltantes', subtitle, content, '#c00', '#fff3f3'));
   pw.document.close(); pw.focus(); pw.print();
 }
 
-function printDupesCompact() {
+// testMode=true → mostra todos os 980 stickers sem badge (pior caso)
+function printDupesCompact(testMode = false) {
   const pw = window.open('', '_blank');
   if (!pw) { alert('Permita popups para imprimir.'); return; }
 
@@ -1644,24 +1650,18 @@ function printDupesCompact() {
   let totalUnique = 0;
   for (let n = 1; n <= 980; n++) if (dupes[n] > 0) totalUnique++;
   const date = new Date().toLocaleDateString('pt-BR');
+  const filterFn = testMode ? n => n > 0 : n => (dupes[n] || 0) > 0;
 
-  const content = _compactGroupsHTML(
-    n => (dupes[n] || 0) > 0,
-    (pos, n) => {
-      const count = dupes[n] || 0;
-      const badge = count > 1 ? `<span class="cg-badge">${count}</span>` : '';
-      return `<span class="cg-wrap"><span class="cg-chip">${pos}</span>${badge}</span>`;
-    }
-  );
-  if (!totalUnique) {
-    pw.document.write('<p>Nenhuma figurinha repetida registrada.</p>');
-  } else {
-    pw.document.write(_compactPrintPage(
-      'Copa FIFA 2026 — Repetidas',
-      `${date} · ${totalUnique} tipos · ${total} cópias extras`,
-      content, '#ffa000', '#fff8e1'
-    ));
-  }
+  const content = _compactGroupsHTML(filterFn, (pos, n) => {
+    if (testMode) return `<span class="cg-chip">${pos}</span>`;
+    const count = dupes[n] || 0;
+    const badge = count > 1 ? `<span class="cg-badge">${count}</span>` : '';
+    return `<span class="cg-wrap"><span class="cg-chip">${pos}</span>${badge}</span>`;
+  });
+  const subtitle = testMode
+    ? `${date} · simulação pior caso (980 figurinhas)`
+    : `${date} · ${totalUnique} tipos · ${total} cópias extras`;
+  pw.document.write(_compactPrintPage('Copa FIFA 2026 — Repetidas', subtitle, content, '#ffa000', '#fff8e1'));
   pw.document.close(); pw.focus(); pw.print();
 }
 
