@@ -1692,6 +1692,7 @@ let _printModalCtx = null;
 
 function openPrintModal(ctx) {
   _printModalCtx = ctx;
+  if (ctx === 'repetidas') closeDupesPanel();
   const isMissing = ctx === 'faltantes';
   document.getElementById('printChoiceTitle').textContent =
     isMissing ? '🖨️ Imprimir Faltantes' : '🖨️ Imprimir Repetidas';
