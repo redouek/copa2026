@@ -1462,6 +1462,11 @@ function closeUserMenu() {
   document.getElementById('userMenu').classList.remove('open');
 }
 function printDupes() {
+  // Abre a janela PRIMEIRO, enquanto ainda estamos no contexto do gesto do usuário
+  // (iOS Safari bloqueia window.open chamado após qualquer operação async/diferida)
+  const pw = window.open('', '_blank');
+  if (!pw) { alert('Permita popups para imprimir.'); return; }
+
   const total = countTotalDupes();
   let totalUnique = 0;
   for (let n = 1; n <= 980; n++) if (dupes[n] > 0) totalUnique++;
@@ -1492,29 +1497,25 @@ function printDupes() {
     if (inner) html += `<div class="dp-group"><div class="dp-group-hdr">Grupo ${g}</div>${inner}</div>`;
   }
   if (!totalUnique) html += '<p style="color:#888;padding:20px 0">Nenhuma figurinha repetida registrada.</p>';
-  document.getElementById('dupesPrintArea').innerHTML = html;
+
+  const css = `
+    body { font-family: Arial, sans-serif; font-size: 10px; color: #111; margin: 12px; }
+    .dp-header { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid #222; padding-bottom: 5px; margin-bottom: 10px; }
+    .dp-title { font-size: 13px; font-weight: 700; }
+    .dp-sub { font-size: 9px; color: #555; }
+    .dp-group { margin-bottom: 10px; page-break-inside: avoid; }
+    .dp-group-hdr { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: #555; margin-bottom: 4px; border-bottom: 1px solid #ddd; padding-bottom: 2px; }
+    .dp-section { display: flex; align-items: baseline; gap: 6px; margin-bottom: 3px; }
+    .dp-team { font-size: 9px; font-weight: 700; min-width: 110px; color: #222; }
+    .dp-chips { display: flex; flex-wrap: wrap; gap: 3px; }
+    .dp-chip { font-size: 8px; font-weight: 700; border: 1px solid #ffa000; background: #fff8e1; border-radius: 3px; padding: 1px 5px; }
+  `;
+
+  pw.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Repetidas</title><style>${css}</style></head><body>${html}</body></html>`);
+  pw.document.close();
+  pw.focus();
+  pw.print();
   closeDupesPanel();
-
-  // Esconde via JS (inline style com !important) para evitar conflitos com outros @media print
-  const printArea = document.getElementById('dupesPrintArea');
-  const toHide = Array.from(document.body.children).filter(
-    el => el !== printArea && el.tagName !== 'SCRIPT'
-  );
-  const prevDisplay = toHide.map(el => el.style.display);
-  toHide.forEach(el => el.style.setProperty('display', 'none', 'important'));
-  printArea.style.setProperty('display', 'block', 'important');
-  document.body.classList.add('print-dupes-mode');
-
-  const restore = () => {
-    document.body.classList.remove('print-dupes-mode');
-    toHide.forEach((el, i) => {
-      el.style.removeProperty('display');
-      if (prevDisplay[i]) el.style.display = prevDisplay[i];
-    });
-    printArea.style.removeProperty('display');
-  };
-  window.addEventListener('afterprint', restore, { once: true });
-  setTimeout(() => window.print(), 100);
 }
 
 // ── Modal Novidade ──
