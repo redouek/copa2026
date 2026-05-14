@@ -262,10 +262,9 @@ main { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 12px; }
   margin-bottom: -2px; transition: color .15s, border-color .15s;
 }
 .admin-nav-btn.active { color: #1255a0; border-bottom-color: #1255a0; }
-.admin-tab { display: flex; flex-direction: column; flex: 1; overflow-y: auto; }
+.admin-tab { display: block; }
 
 /* ── Sponsor form ── */
-.sponsor-slot { outline: 2px solid red; }
 .sponsor-section { padding: 16px 0; border-bottom: 1px solid #f0f0f0; }
 .sponsor-section:last-child { border-bottom: none; }
 .sponsor-section h3 { font-size: 15px; color: #333; margin-bottom: 4px; }
@@ -2745,22 +2744,12 @@ function addSponsorSlot(slotData = {}, scrollToSlot = true) {
   const id = _sponsorNextId++;
   window._sponsorSlotData[id] = slotData;
   const container = document.getElementById('sponsorsContainer');
-  console.log('[sponsor] addSponsorSlot id=' + id, 'container=', container, 'slotData keys=', Object.keys(slotData));
-  if (!container) { console.error('[sponsor] sponsorsContainer NOT FOUND'); return; }
-  try {
-    if (container.querySelector('.sponsor-slot')) {
-      container.insertAdjacentHTML('beforeend',
-        '<hr style="margin:16px 0;border:none;border-top:2px dashed #ddd">');
-    }
-    const html = _sponsorSlotHTML(id, slotData);
-    console.log('[sponsor] HTML length=', html.length, 'first 100:', html.slice(0, 100));
-    container.insertAdjacentHTML('beforeend', html);
-    console.log('[sponsor] after insert: container.children.length=', container.children.length);
-    const slot = document.getElementById('sponsorSlot-' + id);
-    console.log('[sponsor] slot element=', slot, 'offsetHeight=', slot && slot.offsetHeight);
-  } catch(e) {
-    console.error('[sponsor] addSponsorSlot THREW:', e);
+  if (!container) return;
+  if (container.querySelector('.sponsor-slot')) {
+    container.insertAdjacentHTML('beforeend',
+      '<hr style="margin:16px 0;border:none;border-top:2px dashed #ddd">');
   }
+  container.insertAdjacentHTML('beforeend', _sponsorSlotHTML(id, slotData));
   if (scrollToSlot) {
     const newSlot = document.getElementById(`sponsorSlot-${id}`);
     const tabEl = document.getElementById('adminTabSponsor');
@@ -2857,7 +2846,6 @@ async function loadSponsorConfig() {
   }
 
   // Monta o painel admin (isolado para nunca travar o UI)
-  console.log('[sponsor] loadSponsorConfig data=', data ? { active: data.active, sponsorsLen: (data.sponsors||[]).length, keys: Object.keys(data) } : null);
   try {
     document.getElementById('sponsorActive').checked = !!(data && data.active);
     document.getElementById('sponsorsContainer').innerHTML = '';
@@ -2874,11 +2862,9 @@ async function loadSponsorConfig() {
       }
     }
     if (sponsors.length === 0) sponsors = [{}];
-    console.log('[sponsor] sponsors array length=', sponsors.length);
     sponsors.forEach(s => addSponsorSlot(s, false));
     const tabEl = document.getElementById('adminTabSponsor');
     if (tabEl) tabEl.scrollTop = 0;
-    console.log('[sponsor] done, container children=', document.getElementById('sponsorsContainer').children.length);
   } catch(e) {
     console.error('Erro ao montar painel de patrocínio:', e);
   }
