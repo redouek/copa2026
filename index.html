@@ -1609,11 +1609,12 @@ function _compactPrintPage(titleTxt, subtitleTxt, contentHtml, chipBorder, chipB
     .cg-wrap { width: 100%; height: 100%; position: relative;
       display: flex; align-items: center; justify-content: center; }
     .cg-wrap .cg-chip { width: 100%; height: 100%; }
-    .cg-badge { position: absolute; top: -3px; right: -3px;
-      background: #e53935; color: #fff; border-radius: 50%;
-      font-size: 6px; font-weight: 900; min-width: 11px; height: 11px;
+    .cg-badge { position: absolute; top: -5px; right: -5px;
+      background: #e53935 !important; color: #fff !important; border-radius: 50%;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+      font-size: 9px; font-weight: 900; min-width: 15px; height: 15px;
       display: flex; align-items: center; justify-content: center;
-      border: 1.5px solid #fff; line-height: 1; padding: 0 1px; }
+      border: 1.5px solid #fff; line-height: 1; padding: 0 2px; }
   `;
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${titleTxt}</title>
     <style>${css}</style></head><body>
