@@ -2746,15 +2746,12 @@ function addSponsorSlot(slotData = {}) {
   const container = document.getElementById('sponsorsContainer');
   if (!container) return;
   if (container.querySelector('.sponsor-slot')) {
-    const hr = document.createElement('hr');
-    hr.style.cssText = 'margin:16px 0;border:none;border-top:2px dashed #ddd';
-    container.appendChild(hr);
+    container.insertAdjacentHTML('beforeend',
+      '<hr style="margin:16px 0;border:none;border-top:2px dashed #ddd">');
   }
-  const div = document.createElement('div');
-  div.innerHTML = _sponsorSlotHTML(id, slotData);
-  const slot = div.firstElementChild;
-  container.appendChild(slot);
-  slot.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  container.insertAdjacentHTML('beforeend', _sponsorSlotHTML(id, slotData));
+  const tabEl = document.getElementById('adminTabSponsor');
+  if (tabEl) tabEl.scrollTop = tabEl.scrollHeight;
 }
 
 function removeSponsorSlot(id) {
@@ -2837,10 +2834,16 @@ async function clearSponsorConfig() {
 }
 
 async function loadSponsorConfig() {
+  let data = null;
   try {
     const doc = await db.collection('config').doc('sponsor').get();
-    const data = doc.exists ? doc.data() : null;
-    applySponsorConfig(data);
+    data = doc.exists ? doc.data() : null;
+  } catch(e) {
+    console.error('Erro ao buscar config de patrocínio:', e);
+  }
+
+  // Monta o painel admin (isolado para nunca travar o UI)
+  try {
     document.getElementById('sponsorActive').checked = !!(data && data.active);
     document.getElementById('sponsorsContainer').innerHTML = '';
     _sponsorNextId = 0;
@@ -2850,7 +2853,6 @@ async function loadSponsorConfig() {
       if (Array.isArray(data.sponsors) && data.sponsors.length > 0) {
         sponsors = data.sponsors;
       } else if (data.logoUrl || data.bannerUrl || data.promoUrl) {
-        // migração do formato antigo (campo único) → array
         sponsors = [{ logoUrl: data.logoUrl, logoLink: data.logoLink,
           bannerUrl: data.bannerUrl, bannerLink: data.bannerLink,
           promoUrl: data.promoUrl, promoLink: data.promoLink, promoVersion: data.promoVersion }];
@@ -2859,7 +2861,14 @@ async function loadSponsorConfig() {
     if (sponsors.length === 0) sponsors = [{}];
     sponsors.forEach(s => addSponsorSlot(s));
   } catch(e) {
-    console.warn('Erro ao carregar config de patrocínio:', e);
+    console.error('Erro ao montar painel de patrocínio:', e);
+  }
+
+  // Aplica ao UI público separadamente
+  try {
+    applySponsorConfig(data);
+  } catch(e) {
+    console.warn('Erro ao aplicar config de patrocínio ao UI:', e);
   }
 }
 
