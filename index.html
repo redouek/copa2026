@@ -2699,8 +2699,8 @@ let _sponsorNextId = 0;
 window._sponsorSlotData = {};
 
 function _sponsorSlotHTML(id, slot) {
-  const has = k => slot[k] ? '' : 'display:none';
-  const src  = k => slot[k] ? ` src="${slot[k]}"` : '';
+  // Imagens NÃO são embutidas no HTML (evita strings base64 gigantes que
+  // impedem layout no Chrome). São definidas via JS após inserção.
   return `
     <div class="sponsor-slot" id="sponsorSlot-${id}" data-id="${id}">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0 4px;font-weight:600;font-size:15px;color:#333">
@@ -2712,8 +2712,8 @@ function _sponsorSlotHTML(id, slot) {
         <div class="sponsor-dim">Quadrado · Recomendado: 100×100px · Exibido no cabeçalho (44×44px)</div>
         <input type="file" id="logoFile-${id}" accept="image/*" style="display:none" onchange="previewSponsorFile(this,'logoPreview-${id}','logoUploadArea-${id}')">
         <div class="upload-area" id="logoUploadArea-${id}" onclick="document.getElementById('logoFile-${id}').click()" style="height:80px;width:80px">
-          <div class="upload-placeholder" id="logoPlaceholder-${id}" style="${slot.logoUrl ? 'display:none' : ''}"><div>🖼️</div><div>Logo</div></div>
-          <img class="upload-preview" id="logoPreview-${id}"${src('logoUrl')} style="${has('logoUrl')}">
+          <div class="upload-placeholder" id="logoPlaceholder-${id}"><div>🖼️</div><div>Logo</div></div>
+          <img class="upload-preview" id="logoPreview-${id}" style="display:none">
         </div>
         <input class="modal-input" id="logoLinkUrl-${id}" type="url" placeholder="URL ao clicar (opcional)" style="margin-top:8px" value="${slot.logoLink || ''}">
       </div>
@@ -2722,8 +2722,8 @@ function _sponsorSlotHTML(id, slot) {
         <div class="sponsor-dim">Recomendado: 900×120px · Proporção ~7:1</div>
         <input type="file" id="bannerFile-${id}" accept="image/*" style="display:none" onchange="previewSponsorFile(this,'bannerPreview-${id}','bannerUploadArea-${id}')">
         <div class="upload-area" id="bannerUploadArea-${id}" onclick="document.getElementById('bannerFile-${id}').click()" style="height:80px;width:100%">
-          <div class="upload-placeholder" id="bannerPlaceholder-${id}" style="${slot.bannerUrl ? 'display:none' : ''}"><div>🖼️</div><div>Banner (clique para selecionar)</div></div>
-          <img class="upload-preview" id="bannerPreview-${id}"${src('bannerUrl')} style="${has('bannerUrl')}">
+          <div class="upload-placeholder" id="bannerPlaceholder-${id}"><div>🖼️</div><div>Banner (clique para selecionar)</div></div>
+          <img class="upload-preview" id="bannerPreview-${id}" style="display:none">
         </div>
         <input class="modal-input" id="bannerLinkUrl-${id}" type="url" placeholder="URL ao clicar (opcional)" style="margin-top:8px" value="${slot.bannerLink || ''}">
       </div>
@@ -2732,12 +2732,20 @@ function _sponsorSlotHTML(id, slot) {
         <div class="sponsor-dim">Recomendado: 600×400px · Proporção ~3:2 · Use PNG com fundo transparente para formatos personalizados (sem retângulo)</div>
         <input type="file" id="promoFile-${id}" accept="image/*" style="display:none" onchange="previewSponsorFile(this,'promoPreview-${id}','promoUploadArea-${id}')">
         <div class="upload-area" id="promoUploadArea-${id}" onclick="document.getElementById('promoFile-${id}').click()" style="height:120px;width:100%">
-          <div class="upload-placeholder" id="promoPlaceholder-${id}" style="${slot.promoUrl ? 'display:none' : ''}"><div>🖼️</div><div>Modal (clique para selecionar)</div></div>
-          <img class="upload-preview" id="promoPreview-${id}"${src('promoUrl')} style="${has('promoUrl')}">
+          <div class="upload-placeholder" id="promoPlaceholder-${id}"><div>🖼️</div><div>Modal (clique para selecionar)</div></div>
+          <img class="upload-preview" id="promoPreview-${id}" style="display:none">
         </div>
         <input class="modal-input" id="promoLinkUrl-${id}" type="url" placeholder="URL ao clicar (opcional)" style="margin-top:8px" value="${slot.promoLink || ''}">
       </div>
     </div>`;
+}
+
+function _setSponsorImg(imgId, placeholderId, url) {
+  if (!url) return;
+  const img = document.getElementById(imgId);
+  const ph  = document.getElementById(placeholderId);
+  if (img) { img.src = url; img.style.display = ''; }
+  if (ph)  ph.style.display = 'none';
 }
 
 function addSponsorSlot(slotData = {}, scrollToSlot = true) {
@@ -2749,7 +2757,12 @@ function addSponsorSlot(slotData = {}, scrollToSlot = true) {
     container.insertAdjacentHTML('beforeend',
       '<hr style="margin:16px 0;border:none;border-top:2px dashed #ddd">');
   }
+  // HTML sem base64 → Chrome renderiza corretamente
   container.insertAdjacentHTML('beforeend', _sponsorSlotHTML(id, slotData));
+  // Imagens definidas após inserção para não bloquear layout
+  _setSponsorImg(`logoPreview-${id}`,   `logoPlaceholder-${id}`,   slotData.logoUrl);
+  _setSponsorImg(`bannerPreview-${id}`, `bannerPlaceholder-${id}`, slotData.bannerUrl);
+  _setSponsorImg(`promoPreview-${id}`,  `promoPlaceholder-${id}`,  slotData.promoUrl);
   if (scrollToSlot) {
     const newSlot = document.getElementById(`sponsorSlot-${id}`);
     const tabEl = document.getElementById('adminTabSponsor');
