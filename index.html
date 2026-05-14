@@ -1494,9 +1494,27 @@ function printDupes() {
   if (!totalUnique) html += '<p style="color:#888;padding:20px 0">Nenhuma figurinha repetida registrada.</p>';
   document.getElementById('dupesPrintArea').innerHTML = html;
   closeDupesPanel();
+
+  // Esconde via JS (inline style com !important) para evitar conflitos com outros @media print
+  const printArea = document.getElementById('dupesPrintArea');
+  const toHide = Array.from(document.body.children).filter(
+    el => el !== printArea && el.tagName !== 'SCRIPT'
+  );
+  const prevDisplay = toHide.map(el => el.style.display);
+  toHide.forEach(el => el.style.setProperty('display', 'none', 'important'));
+  printArea.style.setProperty('display', 'block', 'important');
   document.body.classList.add('print-dupes-mode');
-  window.addEventListener('afterprint', () => document.body.classList.remove('print-dupes-mode'), { once: true });
-  setTimeout(() => window.print(), 60);
+
+  const restore = () => {
+    document.body.classList.remove('print-dupes-mode');
+    toHide.forEach((el, i) => {
+      el.style.removeProperty('display');
+      if (prevDisplay[i]) el.style.display = prevDisplay[i];
+    });
+    printArea.style.removeProperty('display');
+  };
+  window.addEventListener('afterprint', restore, { once: true });
+  setTimeout(() => window.print(), 100);
 }
 
 // ── Modal Novidade ──
